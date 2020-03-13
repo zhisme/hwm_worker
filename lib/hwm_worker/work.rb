@@ -8,7 +8,7 @@ require 'helpers/file_base'
 module Work
   extend self
 
-  class NO_AVAILABLE_WORK < StandardError; end
+  class NoAvailableWork < StandardError; end
 
   WORK_URL = HEROESWM_URL + 'map.php'
 
@@ -27,7 +27,7 @@ module Work
       session.fill_in 'code', with: solved_captcha
     end
 
-    session.find('.wbtn').click
+    session.find('#wbtn').click
 
     WorkLogger.current.info { "#{user.login} successfully applied for a job. Wait hour." }
     Rollbar.info("#{user.login} successfully applied for a job.")
@@ -41,6 +41,6 @@ module Work
     work_link.click
   rescue Selenium::WebDriver::Error::ElementNotInteractableError,
          Selenium::WebDriver::Error::ElementNotSelectableError
-    raise NO_AVAILABLE_WORK
+    raise NoAvailableWork
   end
 end
