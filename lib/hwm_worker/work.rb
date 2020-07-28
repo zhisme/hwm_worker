@@ -36,7 +36,7 @@ module Work
 
   def find_work(session)
     session.visit(WORK_URL)
-    work_link = session.find('table.wb tr:nth-child(2) td:nth-child(6) a')
+    work_link = session.find('table.wb tr:nth-child(2) td:last-child a')
     work_link.assert_text('»»»')
     work_link.click
   rescue Selenium::WebDriver::Error::ElementNotInteractableError,
