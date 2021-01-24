@@ -24,7 +24,9 @@ class Runner
   attr_reader :session, :user
 
   def initialize(user)
-    @session = Capybara::Session.new(:selenium_chrome)
+    session_mode = SECRETS['capybara']['session'].to_sym || :selenium_chrome_headless
+
+    @session = Capybara::Session.new(session_mode)
     @user = user
   end
 end
