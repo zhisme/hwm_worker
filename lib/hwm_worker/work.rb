@@ -1,4 +1,5 @@
 require 'config/urls'
+require 'pry'
 require 'helpers/captcha/main'
 require 'helpers/file_base'
 
@@ -36,7 +37,7 @@ module Work
 
   def find_work(session)
     session.visit(WORK_URL)
-    work_link = session.find('table.wb tr:nth-child(2) td:last-child a')
+    work_link = session.find('table.wb tr:nth-child(3) td:last-child a')
     work_link.assert_text('»»»')
     work_link.click
   rescue Selenium::WebDriver::Error::ElementNotInteractableError,
