@@ -3,7 +3,7 @@ require 'hwm_worker/work'
 require 'helpers/work_time'
 require 'models/user'
 
-class Runer
+class Runner
   def self.call(user:)
     new(user).call
   end
@@ -24,7 +24,7 @@ class Runer
   attr_reader :session, :user
 
   def initialize(user)
-    @session = Capybara::Session.new(:selenium_chrome_headless)
+    @session = Capybara::Session.new(:selenium_chrome)
     @user = user
   end
 end
