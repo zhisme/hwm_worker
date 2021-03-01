@@ -21,14 +21,14 @@ module Work
   private
 
   def apply_work(session, user)
-    captcha = session.find('[name="working"] table tbody tr:nth-child(2) td.wb img')
+    captcha = session.find('[name="work"] img.getjob_capcha')
     solved_captcha = Captcha::Main.call(image_url: captcha[:src])
 
-    session.within '[name="working"]' do
+    session.within '[name="work"]' do
       session.fill_in 'code', with: solved_captcha
     end
 
-    session.find('#wbtn').click
+    session.find('.getjob_submitBtn').click
 
     WorkLogger.current.info { "#{user.login} successfully applied for a job. Wait hour." }
     Rollbar.info("#{user.login} successfully applied for a job.")
