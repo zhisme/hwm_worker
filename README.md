@@ -19,18 +19,18 @@ Download repo
 
 And then execute:
 
-    $ bundle install
+    $ bundle install # or bin/setup
 
 Create config files based on samples:
 
     $ cp .hwm_credentials.sample.yml  .hwm_credentials.yml
-    $ cp secrets.sample.yml secrets.yml
+    $ cp secrets.sample.yml secrets.yml # can be omitted if ran `bin/setup` command
 
 Fill in with your own game credentials.
 
 ## Usage
 
-`bin/run`
+    $ RACK_ENV=development bin/run
 
 ## Development
 

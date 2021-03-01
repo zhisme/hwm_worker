@@ -8,7 +8,7 @@ module HwmWorker
     # TODO: hack should be used in a single app not in a copies
     Runner.call(user: User.first)
   rescue StandardError => e
-    raise e if ENV['RACK_ENV'] == 'development'
+    raise e if ENV['APP_ENV'] == 'development'
 
     Rollbar.error(e)
   end
