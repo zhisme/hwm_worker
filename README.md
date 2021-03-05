@@ -4,6 +4,10 @@ This gem is intended to use on https://heroeswm.ru flash game. <br>
 This is made for automation of boring captcha in game scenario.
 So you pass your credentials in specific file, buy a captcha resolver at rucaptacha.com and watch you are going rich.
 
+## Warning
+
+Some of my characters was banned due to use of the app, be careful and do not set your chars to work 24h per day.
+
 ## Note
 
 You will need to install selenium and selenium driver.
