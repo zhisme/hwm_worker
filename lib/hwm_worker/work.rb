@@ -24,9 +24,8 @@ module Work
     captcha = session.find('[name="work"] img.getjob_capcha')
     solved_captcha = Captcha::Main.call(image_url: captcha[:src])
 
-    session.within '[name="work"]' do
-      session.fill_in 'code', with: solved_captcha
-    end
+    session.find('#code').click
+    session.find('#code').fill_in(with: solved_captcha)
 
     session.find('.getjob_submitBtn').click
 
