@@ -4,6 +4,8 @@ This gem is intended to use on https://heroeswm.ru flash game. <br>
 This is made for automation of boring captcha in game scenario.
 So you pass your credentials in specific file, buy a captcha resolver at rucaptacha.com and watch you are going rich.
 
+Also it can now make auto-hunt, you just need to buy an item which allows you to do this, and bot will press this buttons
+
 ## Warning
 
 Some of my characters was banned due to use of the app, be careful and do not set your chars to work 24h per day.
@@ -35,6 +37,7 @@ Fill in with your own game credentials.
 ## Usage
 
     $ RACK_ENV=development bin/run
+    $ RACK_ENV=development bin/hunt
 
 ## Development
 
