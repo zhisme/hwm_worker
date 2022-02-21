@@ -1,5 +1,4 @@
 require 'config/urls'
-require 'pry'
 require 'helpers/captcha/main'
 require 'helpers/file_base'
 
@@ -11,7 +10,7 @@ module Work
 
   class NoAvailableWork < StandardError; end
 
-  WORK_URL = HEROESWM_URL + 'map.php'
+  WORK_URL = "#{HEROESWM_URL}/map.php".freeze
 
   def call(session:, user:)
     find_work(session)
