@@ -8,6 +8,9 @@ class AutoHunt
   end
 
   def call
+    WorkLogger.current.info { "Sleeping for #{sleep_time}" }
+    sleep sleep_time
+
     WorkLogger.current.info { "Try to login with #{user.login}" }
     Login.call(session: session, user: user)
 
@@ -17,12 +20,13 @@ class AutoHunt
 
   private
 
-  attr_reader :session, :user
+  attr_reader :session, :user, :sleep_time
 
   def initialize(user)
     session_mode = SECRETS['capybara']['session'].to_sym || :selenium_chrome_headless
 
     @session = Capybara::Session.new(session_mode)
     @user = user
+    @sleep_time = WorkTime.hunt_wait_time
   end
 end
