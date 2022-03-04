@@ -27,7 +27,7 @@ module Hunt
 
     hunt_link.click
     session.find('form > input[type=submit]').click
-    Rollbar.info("#{user.login} successfully applied for a job.")
+    Rollbar.info("#{user.login} successfully performed autohunt.")
   rescue Selenium::WebDriver::Error::ElementNotInteractableError
     raise AutoItemNotFound
   end
