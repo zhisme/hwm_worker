@@ -26,6 +26,7 @@ module Hunt
     assert_correct_hunt_btn!(hunt_text)
 
     hunt_link.click
+    sleep 15
     session.find('form > input[type=submit]').click
     Rollbar.info("#{user.login} successfully performed autohunt.")
   rescue Selenium::WebDriver::Error::ElementNotInteractableError
