@@ -14,12 +14,24 @@ module Work
 
   def call(session:, user:)
     find_work(session)
-    apply_work(session, user)
+
+    if ENV['CAPTCHA'].nil?
+      apply_work_without_captcha(session, user)
+    else
+      apply_work_with_captcha(session, user)
+    end
   end
 
   private
 
-  def apply_work(session, user)
+  def apply_work_without_captcha(session, user)
+    session.find('input.getjob_submitBtn').click
+    WorkLogger.current.info { "#{user.login} successfully applied for a job. Wait hour." }
+    Rollbar.info("#{user.login} successfully applied for a job.")
+    FileBase.write_last_work(user.id)
+  end
+
+  def apply_work_with_captcha(session, user)
     captcha = session.find('[name="work"] img.getjob_capcha')
     solved_captcha = Captcha::Main.call(image_url: captcha[:src])
 

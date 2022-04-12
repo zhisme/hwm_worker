@@ -36,8 +36,14 @@ Fill in with your own game credentials.
 
 ## Usage
 
-    $ RACK_ENV=development bin/run
-    $ RACK_ENV=development bin/hunt
+    $ APP_ENV=development bin/run
+    $ APP_ENV=development bin/hunt
+
+## Options
+
+Environment variables are used for some internal options:
+`APP_ENV` - manages logic of logs and handling exceptions. Defaults to PROD behaviour. Use development for testing.
+`CAPTCHA` - manages logic whether application needs to work with solving captcha. Default behaviour is to not solve captcha.
 
 ## Development
 
