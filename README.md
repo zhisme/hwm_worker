@@ -43,7 +43,6 @@ Fill in with your own game credentials.
 
 Environment variables are used for some internal options:
 `APP_ENV` - manages logic of logs and handling exceptions. Defaults to PROD behaviour. Use development for testing.
-`CAPTCHA` - manages logic whether application needs to work with solving captcha. Default behaviour is to not solve captcha.
 
 ## Development
 
