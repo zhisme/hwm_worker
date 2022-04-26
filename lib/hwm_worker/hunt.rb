@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'config/urls'
 
 ##
@@ -10,6 +12,7 @@ module Hunt
   class AutoHuntBroken < StandardError; end
 
   HUNT_URL = "#{HEROESWM_URL}/map.php".freeze
+  AUTO_BUTTON_TEXT = 'Автобой'.freeze
 
   def call(session:, user:)
     start_hunt(session, user)
@@ -29,12 +32,12 @@ module Hunt
     sleep 15
     session.find('form > input[type=submit]').click
     Rollbar.info("#{user.login} successfully performed autohunt.")
-  rescue Selenium::WebDriver::Error::ElementNotInteractableError
+  rescue Selenium::WebDriver::Error::ElementNotInteractableError, Capybara::ElementNotFound
     raise AutoItemNotFound
   end
 
   def assert_correct_hunt_btn!(hunt_text)
-    return true if hunt_text == 'Автобой'
+    return true if hunt_text == AUTO_BUTTON_TEXT
 
     raise AutoHuntBroken
   end
