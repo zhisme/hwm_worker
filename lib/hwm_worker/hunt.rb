@@ -24,7 +24,7 @@ module Hunt
     session.visit(HUNT_URL)
     selector = '#neut_right_block > div.map_buttons_container > div:nth-child(2)'
     hunt_link = session.find(selector)
-    hunt_text = session.all("#{selector} .ntooltiptext", visible: false).first.text(:all)
+    hunt_text = hunt_link[:hint]
 
     assert_correct_hunt_btn!(hunt_text)
 
