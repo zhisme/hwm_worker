@@ -8,6 +8,7 @@ module Captcha
   class Request
     class CaptchaNotResolved < StandardError; end
     class RucaptchaInternalException < StandardError; end
+    class ZeroBalanceException < StandardError; end
 
     RUCAPTCHA_URL = 'http://rucaptcha.com'.freeze
     SOLVE_URL = "#{RUCAPTCHA_URL}/in.php".freeze
@@ -35,7 +36,7 @@ module Captcha
 
       return self if success?
 
-      raise RucaptchaInternalException
+      handle_failure!
     end
 
     private
@@ -78,6 +79,15 @@ module Captcha
         method: :get,
         url: "#{FETCH_URL}?key=#{API_KEY}&action=get&id=#{captcha_id}&json=1"
       )
+    end
+
+    def handle_failure!
+      case json_response['request']
+      when 'ERROR_ZERO_BALANCE'
+        raise ZeroBalanceException, json_response['error_text']
+      else
+        raise RucaptchaInternalException, json_response.inspect
+      end
     end
   end
 end
