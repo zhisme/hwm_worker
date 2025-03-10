@@ -29,14 +29,9 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "selenium-webdriver", "~> 3.5"
-  spec.add_dependency "capybara", "~> 3.11"
-  spec.add_dependency "rest-client", "~> 2.0"
-  spec.add_dependency "rollbar", "~> 2.18"
+  spec.add_dependency "selenium-webdriver", '~> 4.29', '>= 4.29.1'
+  spec.add_dependency "capybara", '~> 3.40'
+  spec.add_dependency "rest-client"
+  spec.add_dependency "rollbar"
 
-  spec.add_development_dependency "bundler", "~> 1.16"
-  spec.add_development_dependency "rake", "~> 10.0"
-  spec.add_development_dependency "rspec", "~> 3.0"
-  spec.add_development_dependency "byebug", "~> 10.0"
-  spec.add_development_dependency "pry", "~> 0.12.2"
 end

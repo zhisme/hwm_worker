@@ -52,8 +52,7 @@ module Work
     work_link = session.find('table.wb tr:nth-child(3) td:last-child a')
     work_link.assert_text('»»»')
     work_link.click
-  rescue Selenium::WebDriver::Error::ElementNotInteractableError,
-         Selenium::WebDriver::Error::ElementNotSelectableError
+  rescue Selenium::WebDriver::Error::ElementNotInteractableError
     raise NoAvailableWork
   end
 end
