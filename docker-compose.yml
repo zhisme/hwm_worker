@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  selenium:
+    image: selenium/standalone-chrome:latest
+    shm_size: 2gb
+    ports:
+      - "4444:4444"
+      - "7900:7900"  # VNC port for debugging (optional)
+    environment:
+      - SE_NODE_MAX_SESSIONS=5
+      - SE_NODE_SESSION_TIMEOUT=300
+    restart: unless-stopped
+
+  app:
+    build: .
+    image: hwm_worker:latest
+    depends_on:
+      - selenium
+    environment:
+      - APP_ENV=development
+      - SELENIUM_URL=http://selenium:4444
+    volumes:
+      - ./.hwm_credentials.yml:/app/.hwm_credentials.yml
+      - ./secrets.yml:/app/secrets.yml
+      - ./logs:/app/logs
+    restart: unless-stopped
