@@ -63,10 +63,7 @@ RUN CHROME_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testi
     mv /opt/chrome-linux64/chrome /usr/local/bin/google-chrome && \
     mv /opt/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
     chmod +x /usr/local/bin/google-chrome /usr/local/bin/chromedriver && \
-    rm -rf /tmp/chrome-linux64.zip /tmp/chromedriver-linux64.zip /opt/chrome-linux64 /opt/chromedriver-linux64 && \
-    # Verify installations
-    google-chrome --version && \
-    chromedriver --version
+    rm -rf /tmp/chrome-linux64.zip /tmp/chromedriver-linux64.zip /opt/chrome-linux64 /opt/chromedriver-linux64
 
 # Set working directory
 WORKDIR /app
