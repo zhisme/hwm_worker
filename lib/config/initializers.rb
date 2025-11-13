@@ -30,7 +30,10 @@ Capybara.register_driver :selenium_chrome_headless do |app|
   # Use the installed Chrome binary
   options.binary = '/usr/local/bin/google-chrome'
 
-  Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)
+  # Create service with explicit chromedriver path
+  service = Selenium::WebDriver::Service.chrome(path: '/usr/local/bin/chromedriver')
+
+  Capybara::Selenium::Driver.new(app, browser: :chrome, options: options, service: service)
 end
 
 Capybara.register_driver :selenium_chrome do |app|
@@ -45,6 +48,9 @@ Capybara.register_driver :selenium_chrome do |app|
   # Use the installed Chrome binary
   options.binary = '/usr/local/bin/google-chrome'
 
-  Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)
+  # Create service with explicit chromedriver path
+  service = Selenium::WebDriver::Service.chrome(path: '/usr/local/bin/chromedriver')
+
+  Capybara::Selenium::Driver.new(app, browser: :chrome, options: options, service: service)
 end
 
