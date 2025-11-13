@@ -60,9 +60,13 @@ RUN CHROME_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testi
     wget -q -O /tmp/chromedriver-linux64.zip "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chromedriver-linux64.zip" && \
     unzip -q /tmp/chrome-linux64.zip -d /opt/ && \
     unzip -q /tmp/chromedriver-linux64.zip -d /opt/ && \
+    chmod +x /opt/chromedriver-linux64/chromedriver && \
     ln -s /opt/chrome-linux64/chrome /usr/local/bin/google-chrome && \
     ln -s /opt/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
-    rm -rf /tmp/chrome-linux64.zip /tmp/chromedriver-linux64.zip
+    rm -rf /tmp/chrome-linux64.zip /tmp/chromedriver-linux64.zip && \
+    # Verify chromedriver is accessible
+    ls -lh /usr/local/bin/chromedriver && \
+    ls -lh /opt/chromedriver-linux64/chromedriver
 
 # Set working directory
 WORKDIR /app
