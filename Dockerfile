@@ -1,74 +1,12 @@
-# Use Ruby 3.4.1 as base image (full, not slim, for Chrome dependencies)
-FROM ruby:3.4.1
+# Use Ruby 3.4.1 slim as base image
+FROM ruby:3.4.1-slim
 
-# Install system dependencies and Chrome dependencies
+# Install minimal system dependencies
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
     build-essential \
     git \
-    curl \
-    wget \
-    gnupg \
-    ca-certificates \
-    unzip \
-    jq \
-    # Chrome dependencies
-    fonts-liberation \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libatspi2.0-0 \
-    libc6 \
-    libcairo2 \
-    libcups2 \
-    libdbus-1-3 \
-    libdrm2 \
-    libexpat1 \
-    libfontconfig1 \
-    libgbm1 \
-    libgcc-s1 \
-    libglib2.0-0 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libstdc++6 \
-    libx11-6 \
-    libx11-xcb1 \
-    libxcb1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxi6 \
-    libxkbcommon0 \
-    libxrandr2 \
-    libxrender1 \
-    libxss1 \
-    libxtst6 \
-    lsb-release \
-    xdg-utils \
-    libu2f-udev \
-    libvulkan1 \
     && rm -rf /var/lib/apt/lists/*
-
-# Install Chrome for Testing and ChromeDriver
-RUN CHROME_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json | jq -r '.channels.Stable.version') && \
-    wget -q -O /tmp/chrome-linux64.zip "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chrome-linux64.zip" && \
-    wget -q -O /tmp/chromedriver-linux64.zip "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chromedriver-linux64.zip" && \
-    unzip -q /tmp/chrome-linux64.zip -d /opt/ && \
-    unzip -q /tmp/chromedriver-linux64.zip -d /opt/ && \
-    chmod +x /opt/chromedriver-linux64/chromedriver && \
-    ln -s /opt/chrome-linux64/chrome /usr/local/bin/google-chrome && \
-    ln -s /opt/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
-    rm -rf /tmp/chrome-linux64.zip /tmp/chromedriver-linux64.zip && \
-    # Test if chromedriver can actually execute
-    echo "Testing chromedriver dependencies..." && \
-    ldd /opt/chromedriver-linux64/chromedriver && \
-    echo "Attempting to run chromedriver --version..." && \
-    timeout 5 /opt/chromedriver-linux64/chromedriver --version 2>&1 || echo "ChromeDriver failed to start"
 
 # Set working directory
 WORKDIR /app
