@@ -90,8 +90,9 @@ RUN if [ ! -f .hwm_credentials.yml ]; then \
         cp secrets.sample.yml secrets.yml; \
     fi
 
-# Set environment variable
-ENV APP_ENV=production
+# Set environment variable (can be overridden at runtime)
+ARG APP_ENV=production
+ENV APP_ENV=${APP_ENV}
 
 # Default command (can be overridden)
 CMD ["bin/run"]
