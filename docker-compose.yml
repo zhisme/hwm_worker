@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # Production service
+  hwm_worker:
+    build:
+      context: .
+      args:
+        APP_ENV: production
+    image: hwm_worker:latest
+    environment:
+      - APP_ENV=production
+    volumes:
+      - ./.hwm_credentials.yml:/app/.hwm_credentials.yml
+      - ./secrets.yml:/app/secrets.yml
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  # Development service
+  hwm_worker_dev:
+    build:
+      context: .
+      args:
+        APP_ENV: development
+    image: hwm_worker:dev
+    environment:
+      - APP_ENV=development
+    volumes:
+      - ./.hwm_credentials.yml:/app/.hwm_credentials.yml
+      - ./secrets.yml:/app/secrets.yml
+      - ./logs:/app/logs
+      # Mount source code for development
+      - ./lib:/app/lib
+      - ./bin:/app/bin
+    stdin_open: true
+    tty: true
