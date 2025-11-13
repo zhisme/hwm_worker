@@ -11,15 +11,32 @@ RUN apt-get update -qq && \
     gnupg \
     ca-certificates \
     unzip \
+    libnss3 \
+    libgconf-2-4 \
+    libfontconfig1 \
+    libxss1 \
+    libappindicator3-1 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libgdk-pixbuf2.0-0 \
+    libnspr4 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    xdg-utils \
+    fonts-liberation \
+    libgbm1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Chrome - using modern method with signed keyring
-RUN wget -q -O /tmp/google-chrome-key.pub https://dl-ssl.google.com/linux/linux_signing_key.pub && \
-    gpg --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg /tmp/google-chrome-key.pub && \
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list && \
+# Install Chrome - download .deb directly
+RUN wget -q -O /tmp/google-chrome-stable.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
     apt-get update -qq && \
-    apt-get install -y google-chrome-stable && \
-    rm -rf /var/lib/apt/lists/* /tmp/google-chrome-key.pub
+    apt-get install -y /tmp/google-chrome-stable.deb && \
+    rm -rf /var/lib/apt/lists/* /tmp/google-chrome-stable.deb
 
 # Install ChromeDriver - match Chrome version
 RUN CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+') && \
