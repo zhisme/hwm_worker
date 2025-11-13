@@ -3,16 +3,8 @@ require 'rollbar'
 require 'config/secrets'
 require 'selenium/webdriver'
 
-# Only configure Rollbar in production environment
-if ENV['APP_ENV'] != 'development'
-  Rollbar.configure do |config|
-    config.access_token = SECRETS['rollbar']['token']
-  end
-else
-  # Disable Rollbar in development
-  Rollbar.configure do |config|
-    config.enabled = false
-  end
+Rollbar.configure do |config|
+  config.access_token = SECRETS['rollbar']['token']
 end
 
 # Configure Capybara for Docker-friendly Chrome
