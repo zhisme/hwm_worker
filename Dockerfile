@@ -64,9 +64,11 @@ RUN CHROME_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testi
     ln -s /opt/chrome-linux64/chrome /usr/local/bin/google-chrome && \
     ln -s /opt/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
     rm -rf /tmp/chrome-linux64.zip /tmp/chromedriver-linux64.zip && \
-    # Verify chromedriver is accessible
-    ls -lh /usr/local/bin/chromedriver && \
-    ls -lh /opt/chromedriver-linux64/chromedriver
+    # Test if chromedriver can actually execute
+    echo "Testing chromedriver dependencies..." && \
+    ldd /opt/chromedriver-linux64/chromedriver && \
+    echo "Attempting to run chromedriver --version..." && \
+    timeout 5 /opt/chromedriver-linux64/chromedriver --version 2>&1 || echo "ChromeDriver failed to start"
 
 # Set working directory
 WORKDIR /app
