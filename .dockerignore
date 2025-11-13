@@ -1,0 +1,36 @@
+# Git files
+.git
+.gitignore
+.github
+
+# Documentation
+README.md
+CODE_OF_CONDUCT.md
+LICENSE.txt
+
+# Development files
+.travis.yml
+Rakefile
+
+# Logs
+logs/*
+
+# Temporary files
+tmp/
+*.tmp
+*.log
+
+# Config files (should be mounted or provided at runtime)
+.hwm_credentials.yml
+secrets.yml
+
+# Ruby/Bundle
+.bundle/
+vendor/bundle/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
