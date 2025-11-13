@@ -1,5 +1,5 @@
-# Use Ruby 3.4.1 as base image
-FROM ruby:3.4.1-slim
+# Use Ruby 3.4.1 as base image (full, not slim, for Chrome dependencies)
+FROM ruby:3.4.1
 
 # Install dependencies and Chrome in one step to keep apt lists available
 RUN apt-get update -qq && \
