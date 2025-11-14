@@ -5,9 +5,20 @@ This project uses Docker Compose with a separate Selenium container for browser 
 ## Architecture
 
 - **app**: Ruby application (hwm_worker)
-- **selenium**: Standalone Chrome browser with ChromeDriver
+- **selenium**: Standalone Chromium browser with ChromeDriver
 
 The app connects to the Selenium container via Remote WebDriver.
+
+## Platform Support
+
+The docker-compose.yml is configured for **Apple Silicon (ARM64)** using `seleniarm/standalone-chromium`.
+
+For **Intel/AMD64** systems, edit docker-compose.yml:
+```yaml
+selenium:
+  image: selenium/standalone-chrome:latest
+  platform: linux/amd64  # or remove this line
+```
 
 ## Quick Start
 
