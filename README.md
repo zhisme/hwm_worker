@@ -10,6 +10,29 @@ Also it can now make auto-hunt, you just need to buy an item which allows you to
 
 Some of my characters was banned due to use of the app, be careful and do not set your chars to work 24h per day.
 
+## Docker Setup (Recommended)
+
+The easiest way to run this project is using Docker Compose. This handles all dependencies including Selenium and Chrome automatically.
+
+```bash
+# Create config files
+$ cp .hwm_credentials.sample.yml .hwm_credentials.yml
+$ cp secrets.sample.yml secrets.yml
+
+# Edit config files with your credentials
+# Then start the services:
+
+$ docker-compose up worker  # Run bin/run
+$ docker-compose up hunter  # Run bin/hunt
+$ docker-compose up         # Run both
+```
+
+**For detailed Docker instructions, see [DOCKER_README.md](DOCKER_README.md)**
+
+## Local Installation (Without Docker)
+
+If you prefer to run without Docker, you'll need to install Selenium and ChromeDriver manually.
+
 ## Note
 
 You will need to install selenium and selenium driver.
@@ -17,7 +40,7 @@ You can specify prefered selenium driver in `config/initializers.rb`. Here I use
 
 For further information use this http://chromedriver.chromium.org/getting-started
 
-## Installation
+### Installation (Local)
 
 Download repo
 
@@ -34,7 +57,7 @@ Create config files based on samples:
 
 Fill in with your own game credentials.
 
-## Usage
+### Usage (Local)
 
     $ APP_ENV=development bin/run
     $ APP_ENV=development bin/hunt
