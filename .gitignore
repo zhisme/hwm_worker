@@ -6,8 +6,6 @@
 /pkg/
 /spec/reports/
 /tmp/
-logs/*
-!/logs/.keep
 /file_base/*
 !/file_base/.keep
 

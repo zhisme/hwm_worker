@@ -12,9 +12,6 @@ LICENSE.txt
 .travis.yml
 Rakefile
 
-# Logs
-logs/*
-
 # Temporary files
 tmp/
 *.tmp
