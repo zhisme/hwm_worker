@@ -23,7 +23,7 @@ RUN gem install bundler -v 2.6.3 && \
 COPY . .
 
 # Create necessary directories
-RUN mkdir -p logs file_base
+RUN mkdir -p file_base
 
 # Copy sample config files if production configs don't exist
 RUN if [ ! -f .hwm_credentials.yml ]; then \
