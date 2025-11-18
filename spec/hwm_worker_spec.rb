@@ -46,8 +46,8 @@ RSpec.describe HwmWorker do
         end
       end
 
-      it 'does not raise the original exception' do
-        expect { described_class.run }.not_to raise_error(Captcha::Request::ZeroBalanceException)
+      it 'handles the exception without propagating it' do
+        expect { described_class.run }.to raise_error(SystemExit)
       end
     end
 
@@ -66,7 +66,7 @@ RSpec.describe HwmWorker do
       end
 
       it 'does not exit' do
-        expect { described_class.run }.not_to raise_error(SystemExit)
+        expect { described_class.run }.not_to raise_error
       end
     end
 
@@ -120,8 +120,8 @@ RSpec.describe HwmWorker do
         end
       end
 
-      it 'does not raise the original exception' do
-        expect { described_class.hunt }.not_to raise_error(Captcha::Request::ZeroBalanceException)
+      it 'handles the exception without propagating it' do
+        expect { described_class.hunt }.to raise_error(SystemExit)
       end
     end
 
@@ -140,7 +140,7 @@ RSpec.describe HwmWorker do
       end
 
       it 'does not exit' do
-        expect { described_class.hunt }.not_to raise_error(SystemExit)
+        expect { described_class.hunt }.not_to raise_error
       end
     end
   end
