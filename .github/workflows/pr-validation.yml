@@ -44,9 +44,6 @@ jobs:
     needs: build-image
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
       - name: Download Docker image artifact
         uses: actions/download-artifact@v4
         with:
@@ -56,18 +53,8 @@ jobs:
       - name: Load Docker image
         run: docker load -i /tmp/hwm_worker_image.tar
 
-      - name: Create sample config files
-        run: |
-          cp .hwm_credentials.sample.yml .hwm_credentials.yml
-          cp secrets.sample.yml secrets.yml
-
       - name: Run RSpec tests in Docker
-        run: |
-          docker run --rm \
-            -v $(pwd)/.hwm_credentials.yml:/app/.hwm_credentials.yml \
-            -v $(pwd)/secrets.yml:/app/secrets.yml \
-            hwm_worker:test \
-            bundle exec rake spec
+        run: docker run --rm hwm_worker:test bundle exec rake spec
 
   docker-compose-validation:
     name: Docker Compose Validation
