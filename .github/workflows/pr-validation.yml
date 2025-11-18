@@ -24,6 +24,11 @@ jobs:
       - name: Install dependencies
         run: bundle install --jobs 4 --retry 3
 
+      - name: Create sample config files
+        run: |
+          cp .hwm_credentials.sample.yml .hwm_credentials.yml
+          cp secrets.sample.yml secrets.yml
+
       - name: Run RSpec tests
         run: bundle exec rake spec
         continue-on-error: false
@@ -50,10 +55,10 @@ jobs:
           cp secrets.sample.yml secrets.yml
 
       - name: Validate docker-compose configuration
-        run: docker-compose config
+        run: docker compose config
 
       - name: Test docker-compose build
-        run: docker-compose build worker hunter
+        run: docker compose build worker hunter
 
   security-audit:
     name: Security Audit
