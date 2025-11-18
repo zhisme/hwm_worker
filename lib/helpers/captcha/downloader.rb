@@ -19,7 +19,7 @@ module Captcha
 
     def download_captcha(image_url)
       File.open('captcha.png', 'wb') do |fo|
-        fo.write open(image_url).read
+        fo.write URI.open(image_url).read
       end
     end
   end
