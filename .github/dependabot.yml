@@ -1,0 +1,60 @@
+version: 2
+updates:
+  # Enable version updates for Bundler (Ruby gems)
+  - package-ecosystem: "bundler"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    # Allow Dependabot to open PRs for security and version updates
+    open-pull-requests-limit: 10
+    # Grouping strategy for updates
+    groups:
+      # Group all patch and minor updates together
+      dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Automatically rebase PRs when base branch updates
+    rebase-strategy: "auto"
+    # Labels to add to Dependabot PRs
+    labels:
+      - "dependencies"
+      - "automated"
+    # Commit message configuration
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
+  # Enable version updates for Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "build"
+      include: "scope"
