@@ -1,5 +1,5 @@
 # Git files
-.git
+# .git - needed for bundler/gem_tasks in Rakefile
 .gitignore
 .github
 
@@ -10,7 +10,7 @@ LICENSE.txt
 
 # Development files
 .travis.yml
-Rakefile
+# Rakefile - needed for running tests in Docker
 
 # Temporary files
 tmp/
