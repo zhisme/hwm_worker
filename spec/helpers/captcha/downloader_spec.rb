@@ -29,7 +29,7 @@ RSpec.describe Captcha::Downloader do
       let(:mock_io) { StringIO.new(fake_image_data) }
 
       before do
-        allow(described_class).to receive(:open).with(image_url).and_return(mock_io)
+        allow(URI).to receive(:open).with(image_url).and_return(mock_io)
       end
 
       it 'downloads the image' do
@@ -49,7 +49,7 @@ RSpec.describe Captcha::Downloader do
       end
 
       it 'calls open with the image URL' do
-        expect(described_class).to receive(:open).with(image_url).and_return(mock_io)
+        expect(URI).to receive(:open).with(image_url).and_return(mock_io)
         described_class.call(image_url: image_url)
       end
     end
@@ -58,18 +58,18 @@ RSpec.describe Captcha::Downloader do
       let(:mock_io) { StringIO.new(fake_image_data) }
 
       before do
-        allow(described_class).to receive(:open).and_return(mock_io)
+        allow(URI).to receive(:open).and_return(mock_io)
       end
 
       it 'handles URLs with query parameters' do
         url_with_params = 'http://example.com/captcha.png?id=123&token=abc'
-        expect(described_class).to receive(:open).with(url_with_params).and_return(mock_io)
+        expect(URI).to receive(:open).with(url_with_params).and_return(mock_io)
         described_class.call(image_url: url_with_params)
       end
 
       it 'handles HTTPS URLs' do
         https_url = 'https://example.com/secure/captcha.png'
-        expect(described_class).to receive(:open).with(https_url).and_return(mock_io)
+        expect(URI).to receive(:open).with(https_url).and_return(mock_io)
         described_class.call(image_url: https_url)
       end
     end
@@ -79,7 +79,7 @@ RSpec.describe Captcha::Downloader do
     let(:mock_io) { StringIO.new(fake_image_data) }
 
     before do
-      allow(described_class).to receive(:open).with(image_url).and_return(mock_io)
+      allow(URI).to receive(:open).with(image_url).and_return(mock_io)
     end
 
     it 'overwrites existing captcha.png if it exists' do
@@ -103,7 +103,7 @@ RSpec.describe Captcha::Downloader do
   describe 'error handling' do
     context 'when URL is unreachable' do
       before do
-        allow(described_class).to receive(:open).with(image_url).and_raise(OpenURI::HTTPError.new('404 Not Found', StringIO.new))
+        allow(URI).to receive(:open).with(image_url).and_raise(OpenURI::HTTPError.new('404 Not Found', StringIO.new))
       end
 
       it 'raises an error' do
@@ -113,7 +113,7 @@ RSpec.describe Captcha::Downloader do
 
     context 'when network error occurs' do
       before do
-        allow(described_class).to receive(:open).with(image_url).and_raise(SocketError.new('getaddrinfo: Name or service not known'))
+        allow(URI).to receive(:open).with(image_url).and_raise(SocketError.new('getaddrinfo: Name or service not known'))
       end
 
       it 'raises SocketError' do
