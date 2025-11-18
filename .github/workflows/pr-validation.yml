@@ -7,31 +7,18 @@ on:
       - main
 
 jobs:
-  validate:
-    name: Validate PR
+  build-image:
+    name: Build and Verify Docker Image
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.4.1'
-          bundler-cache: true  # Automatically runs 'bundle install' and caches gems
-
-      - name: Install dependencies
-        run: bundle install --jobs 4 --retry 3
-
       - name: Create sample config files
         run: |
           cp .hwm_credentials.sample.yml .hwm_credentials.yml
           cp secrets.sample.yml secrets.yml
-
-      - name: Run RSpec tests
-        run: bundle exec rake spec
-        continue-on-error: false
 
       - name: Build Docker image
         run: docker build -t hwm_worker:test .
@@ -40,6 +27,47 @@ jobs:
         run: |
           echo "Docker image built successfully"
           docker images | grep hwm_worker
+
+      - name: Save Docker image
+        run: docker save hwm_worker:test -o /tmp/hwm_worker_image.tar
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hwm_worker_image
+          path: /tmp/hwm_worker_image.tar
+          retention-days: 1
+
+  test:
+    name: Run Tests in Docker
+    runs-on: ubuntu-latest
+    needs: build-image
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: hwm_worker_image
+          path: /tmp
+
+      - name: Load Docker image
+        run: docker load -i /tmp/hwm_worker_image.tar
+
+      - name: Create sample config files
+        run: |
+          cp .hwm_credentials.sample.yml .hwm_credentials.yml
+          cp secrets.sample.yml secrets.yml
+
+      - name: Run RSpec tests in Docker
+        run: |
+          docker run --rm \
+            -v $(pwd)/.hwm_credentials.yml:/app/.hwm_credentials.yml \
+            -v $(pwd)/secrets.yml:/app/secrets.yml \
+            hwm_worker:test \
+            bundle exec rake spec
 
   docker-compose-validation:
     name: Docker Compose Validation
