@@ -32,7 +32,7 @@ jobs:
         run: docker save hwm_worker:test -o /tmp/hwm_worker_image.tar
 
       - name: Upload Docker image artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: hwm_worker_image
           path: /tmp/hwm_worker_image.tar
