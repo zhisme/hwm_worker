@@ -1,3 +1,7 @@
+# Disable stdout/stderr buffering for real-time logs in containers, kibana usage
+$stdout.sync = true
+$stderr.sync = true
+
 require 'capybara'
 require 'rollbar'
 require 'config/secrets'
