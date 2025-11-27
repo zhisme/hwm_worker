@@ -3,7 +3,7 @@ name: Build and Deploy
 on:
   push:
     branches:
-      - main
+      - master
     paths-ignore:
       - '**.md'
       - '.gitignore'
@@ -69,7 +69,7 @@ jobs:
         with:
           repository: zhisme/zhisme-infra
           token: ${{ secrets.INFRA_REPO_PAT }}
-          ref: main
+          ref: master
 
       - name: Setup yq
         uses: mikefarah/yq@v4
@@ -101,6 +101,6 @@ jobs:
           Triggered by: ${{ github.repository }}@${{ github.sha }}
           Author: ${{ github.actor }}"
 
-          git push origin main
+          git push origin master
 
           echo "Successfully updated zhisme-infra repository"
