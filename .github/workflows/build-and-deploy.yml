@@ -79,24 +79,24 @@ jobs:
           NEW_TAG="${{ needs.build-and-push.outputs.image_tag }}"
           echo "Updating image.tag to: $NEW_TAG"
 
-          yq eval ".image.tag = \"$NEW_TAG\"" -i helm/hwm_worker/values.yaml
+          yq eval ".image.tag = \"$NEW_TAG\"" -i helm/charts/hwm-worker/values.yaml
 
           echo "Updated values.yaml:"
-          cat helm/hwm_worker/values.yaml | grep -A 3 "image:"
+          cat helm/charts/hwm-worker/values.yaml | grep -A 3 "image:"
 
       - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add helm/hwm_worker/values.yaml
+          git add helm/charts/hwm-worker/values.yaml
 
           if git diff --staged --quiet; then
             echo "No changes to commit"
             exit 0
           fi
 
-          git commit -m "chore: update hwm_worker image to ${{ needs.build-and-push.outputs.image_tag }}
+          git commit -m "chore: update hwm-worker image to ${{ needs.build-and-push.outputs.image_tag }}
 
           Triggered by: ${{ github.repository }}@${{ github.sha }}
           Author: ${{ github.actor }}"
