@@ -6,7 +6,7 @@ module WorkTime
 
   HOUR = 60 * 60
   DELTA = 10 # if some calculation went wrong on writing working time
-  HAUNT_MAX_WAIT = 1000
+  HAUNT_MAX_WAIT = 100
 
   ##
   # Define time to sleep for worker + DELTA (ocasionally time)
