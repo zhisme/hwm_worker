@@ -123,8 +123,8 @@ RSpec.describe WorkTime do
       expect(WorkTime::DELTA).to eq(10)
     end
 
-    it 'HAUNT_MAX_WAIT is 1000' do
-      expect(WorkTime::HAUNT_MAX_WAIT).to eq(1000)
+    it 'HAUNT_MAX_WAIT is 100' do
+      expect(WorkTime::HAUNT_MAX_WAIT).to eq(100)
     end
   end
 end
