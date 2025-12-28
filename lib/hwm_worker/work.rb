@@ -9,6 +9,7 @@ module Work
   extend self
 
   class NoAvailableWork < StandardError; end
+  class CannotApplyForJobError < StandardError; end
 
   WORK_URL = "#{HEROESWM_URL}/map.php".freeze
 
@@ -32,6 +33,8 @@ module Work
     WorkLogger.current.info { "#{user.login} successfully applied for a job. Wait hour." }
     Rollbar.info("#{user.login} successfully applied for a job.")
     FileBase.write_last_work(user.id)
+  rescue Capybara::ElementNotFound => e
+    raise CannotApplyForJobError, "Cannot apply for job (manual): #{e.message}"
   end
 
   def apply_work_with_captcha(session, user, captcha_el)
@@ -45,6 +48,8 @@ module Work
     WorkLogger.current.info { "#{user.login} successfully applied for a job. Wait hour." }
     Rollbar.info("#{user.login} successfully applied for a job.")
     FileBase.write_last_work(user.id)
+  rescue Capybara::ElementNotFound => e
+    raise CannotApplyForJobError, "Cannot apply for job (with captcha): #{e.message}"
   end
 
   def find_work(session)
