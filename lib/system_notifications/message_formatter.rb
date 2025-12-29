@@ -34,9 +34,9 @@ module SystemNotifications
       lines = []
       lines << header_line
       lines << ''
-      lines << "*Source:* #{notification.source}"
-      lines << "*Worker:* #{notification.worker_name}" if notification.worker_name
-      lines << "*User:* #{notification.user_login}" if notification.user_login
+      lines << "*Source:* #{escape_markdown(notification.source)}"
+      lines << "*Worker:* #{escape_markdown(notification.worker_name)}" if notification.worker_name
+      lines << "*User:* #{escape_markdown(notification.user_login)}" if notification.user_login
       lines << "*Time:* #{format_time}"
       lines << ''
       lines << '*Message:*'
