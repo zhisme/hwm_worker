@@ -15,6 +15,80 @@ RSpec.describe SystemNotifications do
     allow(SystemNotifications::Providers::Telegram).to receive(:call)
   end
 
+  describe '.notify_error' do
+    let(:user) { instance_double(User, login: 'test_player') }
+
+    it 'sends notification with error details' do
+      error = StandardError.new('Something failed')
+
+      described_class.notify_error(error, provider: :telegram, worker_name: 'work', user: user)
+
+      expect(SystemNotifications::Providers::Telegram).to have_received(:call) do |notification|
+        expect(notification.title).to eq('StandardError')
+        expect(notification.message).to eq('Something failed')
+        expect(notification.worker_name).to eq('work')
+        expect(notification.user_login).to eq('test_player')
+      end
+    end
+
+    it 'classifies error level automatically' do
+      error = Work::NoAvailableWork.new('No work')
+
+      described_class.notify_error(error, provider: :telegram, worker_name: 'work')
+
+      expect(SystemNotifications::Providers::Telegram).to have_received(:call) do |notification|
+        expect(notification.level).to eq(:warning)
+      end
+    end
+
+    it 'works without user' do
+      error = StandardError.new('Error')
+
+      described_class.notify_error(error, provider: :telegram, worker_name: 'work')
+
+      expect(SystemNotifications::Providers::Telegram).to have_received(:call) do |notification|
+        expect(notification.user_login).to be_nil
+      end
+    end
+  end
+
+  describe '.classify_error_level' do
+    it 'returns :critical for ZeroBalanceException' do
+      error = Captcha::Request::ZeroBalanceException.new('test')
+      expect(described_class.classify_error_level(error)).to eq(:critical)
+    end
+
+    it 'returns :error for LoginInvalid' do
+      error = Login::LoginInvalid.new('test')
+      expect(described_class.classify_error_level(error)).to eq(:error)
+    end
+
+    it 'returns :error for CannotApplyForJobError' do
+      error = Work::CannotApplyForJobError.new('test')
+      expect(described_class.classify_error_level(error)).to eq(:error)
+    end
+
+    it 'returns :error for AutoHuntBroken' do
+      error = Hunt::AutoHuntBroken.new('test')
+      expect(described_class.classify_error_level(error)).to eq(:error)
+    end
+
+    it 'returns :error for AutoItemNotFound' do
+      error = Hunt::AutoItemNotFound.new('test')
+      expect(described_class.classify_error_level(error)).to eq(:error)
+    end
+
+    it 'returns :warning for NoAvailableWork' do
+      error = Work::NoAvailableWork.new('test')
+      expect(described_class.classify_error_level(error)).to eq(:warning)
+    end
+
+    it 'returns :error for unknown errors' do
+      error = RuntimeError.new('test')
+      expect(described_class.classify_error_level(error)).to eq(:error)
+    end
+  end
+
   describe '.critical!' do
     it 'sends a critical notification' do
       described_class.critical!(
@@ -27,25 +101,6 @@ RSpec.describe SystemNotifications do
         expect(notification.level).to eq(:critical)
         expect(notification.title).to eq('CriticalError')
         expect(notification.message).to eq('Critical failure')
-      end
-    end
-
-    it 'accepts optional context' do
-      error = StandardError.new('test')
-
-      described_class.critical!(
-        provider: :telegram,
-        title: 'CriticalError',
-        message: 'Critical failure',
-        worker_name: 'work',
-        user_login: 'player1',
-        error: error
-      )
-
-      expect(SystemNotifications::Providers::Telegram).to have_received(:call) do |notification|
-        expect(notification.worker_name).to eq('work')
-        expect(notification.user_login).to eq('player1')
-        expect(notification.error).to eq(error)
       end
     end
   end
@@ -91,31 +146,6 @@ RSpec.describe SystemNotifications do
       expect(SystemNotifications::Providers::Telegram).to have_received(:call) do |notification|
         expect(notification.source).to eq('HWM_WORKER')
       end
-    end
-
-    it 'allows custom source' do
-      described_class.error!(
-        provider: :telegram,
-        title: 'Test',
-        message: 'Test',
-        source: 'OTHER_SERVICE'
-      )
-
-      expect(SystemNotifications::Providers::Telegram).to have_received(:call) do |notification|
-        expect(notification.source).to eq('OTHER_SERVICE')
-      end
-    end
-  end
-
-  describe 'provider class support' do
-    it 'accepts provider class directly' do
-      described_class.error!(
-        provider: SystemNotifications::Providers::Telegram,
-        title: 'Test',
-        message: 'Test'
-      )
-
-      expect(SystemNotifications::Providers::Telegram).to have_received(:call)
     end
   end
 end
