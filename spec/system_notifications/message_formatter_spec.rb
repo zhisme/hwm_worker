@@ -46,8 +46,8 @@ RSpec.describe SystemNotifications::MessageFormatter do
       expect(formatted).to include("\u{1F534} CRITICAL: ZeroBalanceException")
     end
 
-    it 'includes source' do
-      expect(formatted).to include('*Source:* HWM_WORKER')
+    it 'includes source (escaped)' do
+      expect(formatted).to include('*Source:* HWM\\_WORKER')
     end
 
     it 'includes worker name' do
