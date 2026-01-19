@@ -13,7 +13,8 @@ GEM
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
     base64 (0.3.0)
-    byebug (12.0.0)
+    byebug (13.0.0)
+      reline (>= 0.6.0)
     capybara (3.40.0)
       addressable
       matrix
@@ -111,7 +112,7 @@ PLATFORMS
 
 DEPENDENCIES
   bundler (~> 2.6)
-  byebug (~> 12.0)
+  byebug (~> 13.0)
   hwm_worker!
   pry (~> 0.16)
   rake (~> 13.1)
