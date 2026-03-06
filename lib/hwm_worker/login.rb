@@ -1,4 +1,5 @@
 require 'config/urls'
+require 'helpers/captcha/main'
 require 'helpers/work_logger'
 
 ##
@@ -10,6 +11,7 @@ module Login
   class LoginInvalid < StandardError; end
 
   UNSUCCESS_LOGIN_URL = HEROESWM_URL + 'login.php'
+  CAPTCHA_IMG_SELECTOR = 'form > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(1) > img'
 
   def call(session:, user:)
     login(session, user)
@@ -17,7 +19,7 @@ module Login
     return session if logged_in?(session)
 
     if captcha_present?(session)
-      login_with_captcha(session)
+      login_with_captcha(session, user)
     end
 
     WorkLogger.current.fatal { "#{user.login} is invalid." }
@@ -27,8 +29,17 @@ module Login
 
   private
 
-  def login_with_captcha(*)
-    raise 'Implement me!'
+  def login_with_captcha(session, user)
+    captcha_el = session.find(CAPTCHA_IMG_SELECTOR)
+    image_url = HEROESWM_URL + captcha_el[:src]
+    solved_captcha = Captcha::Main.call(image_url: image_url)
+
+    session.within 'form' do
+      session.fill_in 'pcode', with: solved_captcha
+      session.fill_in 'pass', with: user.password
+    end
+
+    session.find('.entergame input').click
   end
 
   def login(session, user)
@@ -46,6 +57,6 @@ module Login
   end
 
   def captcha_present?(session)
-    session.has_css?('form > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(1) > img')
+    session.has_css?(CAPTCHA_IMG_SELECTOR)
   end
 end
