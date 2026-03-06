@@ -9,8 +9,9 @@ class Runner
   end
 
   def call
-    WorkLogger.current.info { "Sleeping for #{WorkTime.wait_time(user.id)}." }
-    sleep WorkTime.wait_time(user.id)
+    wait = WorkTime.wait_time(user.id)
+    WorkLogger.current.info { "Sleeping for #{wait}." }
+    sleep wait
 
     WorkLogger.current.info { "Try to login with #{user.login}" }
     Login.call(session: session, user: user)

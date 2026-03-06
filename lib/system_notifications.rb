@@ -31,7 +31,8 @@ module SystemNotifications
 
     def classify_error_level(error)
       case error
-      when Captcha::Request::ZeroBalanceException
+      when HwmWorker::WorkerTerminated,
+           Captcha::Request::ZeroBalanceException
         :critical
       when Login::LoginInvalid,
            Work::CannotApplyForJobError,
