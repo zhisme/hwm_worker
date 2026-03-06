@@ -7,6 +7,7 @@ module WorkTime
   HOUR = 60 * 60
   DELTA = 10 # if some calculation went wrong on writing working time
   HAUNT_MAX_WAIT = 100
+  MAX_SLEEP = Integer(ENV.fetch('MAX_SLEEP_SECONDS', 240)) # DO NOT CHANGE, SHOULD BE IN SYNC WITH kubernetes.activeDeadlineSeconds
 
   ##
   # Define time to sleep for worker + DELTA (ocasionally time)
@@ -15,7 +16,7 @@ module WorkTime
     return 0 if FileBase.last_work(user_id).nil?
 
     time_to_wait = (FileBase.last_work(user_id).to_i + HOUR) - Time.now.to_i
-    time_to_wait.negative? ? 0 : time_to_wait + DELTA
+    [time_to_wait.negative? ? 0 : time_to_wait + DELTA, MAX_SLEEP].min
   end
 
   def hunt_wait_time

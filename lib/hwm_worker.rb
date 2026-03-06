@@ -7,6 +7,8 @@ require 'helpers/captcha/request'
 require 'system_notifications'
 
 module HwmWorker
+  class WorkerTerminated < StandardError; end
+
   def self.run
     # TODO: hack should be used in a single app not in a copies
     Runner.call(user: User.first)
