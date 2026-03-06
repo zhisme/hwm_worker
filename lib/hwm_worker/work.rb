@@ -31,6 +31,7 @@ module Work
   def apply_work_without_captcha(session, user)
     session.find('input.getjob_submitBtn').click
     WorkLogger.current.info { "#{user.login} successfully applied for a job. Wait hour." }
+    log_gold(session, user)
     Rollbar.info("#{user.login} successfully applied for a job.")
     FileBase.write_last_work(user.id)
   rescue Capybara::ElementNotFound => e
@@ -46,10 +47,18 @@ module Work
     session.find('.getjob_submitBtn').click
 
     WorkLogger.current.info { "#{user.login} successfully applied for a job. Wait hour." }
+    log_gold(session, user)
     Rollbar.info("#{user.login} successfully applied for a job.")
     FileBase.write_last_work(user.id)
   rescue Capybara::ElementNotFound => e
     raise CannotApplyForJobError, "Cannot apply for job (with captcha): #{e.message}"
+  end
+
+  def log_gold(session, user)
+    gold_text = session.find('img[hwm_label="Золото"] + span').text(:all)
+    WorkLogger.current.info { "#{user.login} current gold: #{gold_text}" }
+  rescue Capybara::ElementNotFound
+    WorkLogger.current.info { "#{user.login} could not parse gold amount" }
   end
 
   def find_work(session)
