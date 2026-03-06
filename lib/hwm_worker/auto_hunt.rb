@@ -1,4 +1,5 @@
 require 'hwm_worker/login'
+require 'hwm_worker/inventory_check'
 require 'hwm_worker/hunt'
 require 'models/user'
 
@@ -13,6 +14,9 @@ class AutoHunt
 
     WorkLogger.current.info { "Try to login with #{user.login}" }
     Login.call(session: session, user: user)
+
+    WorkLogger.current.info { "Checking mirror durability for #{user.login}" }
+    InventoryCheck.call(session: session, user: user)
 
     WorkLogger.current.info { "Auto hunt started for #{user.login}" }
     Hunt.call(session: session, user: user)
