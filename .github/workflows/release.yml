@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag matches gem version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          GEM_VERSION=$(ruby -r ./lib/hwm_worker/version.rb -e 'print HwmWorker::VERSION')
+
+          if [ "$TAG" != "$GEM_VERSION" ]; then
+            echo "tag $GITHUB_REF_NAME does not match HwmWorker::VERSION $GEM_VERSION"
+            exit 1
+          fi
+
+      - name: Detect prerelease
+        id: prerelease
+        run: |
+          if [[ "$GITHUB_REF_NAME" =~ -(alpha|beta|rc) ]]; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag \
+            --prerelease=${{ steps.prerelease.outputs.value }}
