@@ -31,7 +31,7 @@ RSpec.describe Captcha::Resolver do
       allow(resolver).to receive(:sleep) # Mock sleep to speed up tests
     end
 
-    context 'when captcha is resolved successfully on first try' do
+    context 'when captcha is resolved on first poll' do
       before do
         allow(mock_request).to receive(:solve).and_return(mock_request)
         allow(mock_request).to receive(:fetch).and_return(mock_request)
@@ -39,8 +39,7 @@ RSpec.describe Captcha::Resolver do
       end
 
       it 'returns the solved captcha text' do
-        result = resolver.call
-        expect(result).to eq(solved_text)
+        expect(resolver.call).to eq(solved_text)
       end
 
       it 'creates Request with base64_captcha' do
@@ -53,97 +52,132 @@ RSpec.describe Captcha::Resolver do
         resolver.call
       end
 
-      it 'sleeps for 20 seconds before fetching' do
-        expect(resolver).to receive(:sleep).with(20)
+      it 'sleeps one poll interval before fetching' do
+        expect(resolver).to receive(:sleep).with(described_class::POLL_INTERVAL).once
         resolver.call
       end
 
-      it 'calls fetch after sleeping' do
-        expect(mock_request).to receive(:fetch).and_return(mock_request)
+      it 'fetches exactly once' do
+        expect(mock_request).to receive(:fetch).once.and_return(mock_request)
         resolver.call
       end
     end
 
-    context 'when captcha is not resolved on first fetch (retry scenario)' do
+    context 'when captcha needs several polls' do
+      let(:failures) { 3 }
+
       before do
         allow(mock_request).to receive(:solve).and_return(mock_request)
-      end
-
-      it 'retries once when CaptchaNotResolved is raised' do
-        allow(mock_request).to receive(:fetch).once.and_raise(Captcha::Request::CaptchaNotResolved)
-        allow(mock_request).to receive(:fetch).once.and_return(mock_request)
         allow(mock_request).to receive(:json_response).and_return({ 'request' => solved_text })
-        allow(resolver).to receive(:sleep)
-        allow(STDOUT).to receive(:puts)
 
-        result = resolver.call
-        expect(result).to eq(solved_text)
-      end
-
-      it 'sleeps 30 seconds after CaptchaNotResolved' do
         call_count = 0
         allow(mock_request).to receive(:fetch) do
           call_count += 1
-          if call_count == 1
-            raise Captcha::Request::CaptchaNotResolved
-          else
-            mock_request
-          end
+          raise Captcha::Request::CaptchaNotResolved if call_count <= failures
+
+          mock_request
         end
-        allow(mock_request).to receive(:json_response).and_return({ 'request' => solved_text })
-        allow(STDOUT).to receive(:puts)
+      end
 
-        expect(resolver).to receive(:sleep).with(20).ordered
-        expect(resolver).to receive(:sleep).with(30).ordered
+      it 'returns the solved captcha text' do
+        expect(resolver.call).to eq(solved_text)
+      end
 
+      it 'polls until resolved' do
         resolver.call
+        expect(mock_request).to have_received(:fetch).exactly(failures + 1).times
       end
 
-      it 'prints retry message' do
-        call_count = 0
-        allow(mock_request).to receive(:fetch) do
-          call_count += 1
-          if call_count == 1
-            raise Captcha::Request::CaptchaNotResolved
-          else
-            mock_request
-          end
-        end
-        allow(mock_request).to receive(:json_response).and_return({ 'request' => solved_text })
-        allow(resolver).to receive(:sleep)
-
-        expect { resolver.call }.to output(/Captcha::Request::CaptchaNotResolved. Retrying/).to_stdout
-      end
-
-      it 'fetches again after retry sleep' do
-        call_count = 0
-        allow(mock_request).to receive(:fetch) do
-          call_count += 1
-          if call_count == 1
-            raise Captcha::Request::CaptchaNotResolved
-          else
-            mock_request
-          end
-        end
-        allow(mock_request).to receive(:json_response).and_return({ 'request' => solved_text })
-        allow(resolver).to receive(:sleep)
-        allow(STDOUT).to receive(:puts)
-
+      it 'sleeps one interval per attempt' do
         resolver.call
-        expect(call_count).to eq(2)
+        expect(resolver).to have_received(:sleep).with(described_class::POLL_INTERVAL).exactly(failures + 1).times
       end
     end
 
-    context 'when both fetch attempts fail' do
+    context 'when captcha is never resolved' do
       before do
         allow(mock_request).to receive(:solve).and_return(mock_request)
         allow(mock_request).to receive(:fetch).and_raise(Captcha::Request::CaptchaNotResolved)
-        allow(STDOUT).to receive(:puts)
       end
 
-      it 'raises CaptchaNotResolved after retry' do
-        expect { resolver.call }.to raise_error(Captcha::Request::CaptchaNotResolved)
+      it 'raises CaptchaExceededMaxAttempts rather than leaking CaptchaNotResolved' do
+        expect { resolver.call }.to raise_error(described_class::CaptchaExceededMaxAttempts)
       end
+
+      it 'gives up after MAX_ATTEMPTS polls' do
+        expect { resolver.call }.to raise_error(described_class::CaptchaExceededMaxAttempts)
+        expect(mock_request).to have_received(:fetch).exactly(described_class::MAX_ATTEMPTS).times
+      end
+
+      it 'sleeps one interval per attempt and no more' do
+        expect { resolver.call }.to raise_error(described_class::CaptchaExceededMaxAttempts)
+        expect(resolver).to have_received(:sleep)
+          .with(described_class::POLL_INTERVAL).exactly(described_class::MAX_ATTEMPTS).times
+      end
+
+      it 'does not exceed the poll budget' do
+        expect { resolver.call }.to raise_error(described_class::CaptchaExceededMaxAttempts)
+        budget = described_class::POLL_INTERVAL * described_class::MAX_ATTEMPTS
+        expect(budget).to be <= 90
+      end
+    end
+
+    context 'when the last poll succeeds' do
+      before do
+        allow(mock_request).to receive(:solve).and_return(mock_request)
+        allow(mock_request).to receive(:json_response).and_return({ 'request' => solved_text })
+
+        call_count = 0
+        allow(mock_request).to receive(:fetch) do
+          call_count += 1
+          raise Captcha::Request::CaptchaNotResolved if call_count < described_class::MAX_ATTEMPTS
+
+          mock_request
+        end
+      end
+
+      it 'returns the solved text without raising on the boundary attempt' do
+        expect(resolver.call).to eq(solved_text)
+        expect(mock_request).to have_received(:fetch).exactly(described_class::MAX_ATTEMPTS).times
+      end
+    end
+
+    context 'when solve fails' do
+      before do
+        allow(mock_request).to receive(:solve).and_raise(Captcha::Request::ZeroBalanceException, 'no funds')
+      end
+
+      it 'propagates the error without polling' do
+        allow(mock_request).to receive(:fetch)
+
+        expect { resolver.call }.to raise_error(Captcha::Request::ZeroBalanceException, 'no funds')
+        expect(mock_request).not_to have_received(:fetch)
+      end
+    end
+
+    context 'when fetch returns a blank answer' do
+      before do
+        allow(mock_request).to receive(:solve).and_return(mock_request)
+        allow(mock_request).to receive(:fetch).and_return(mock_request)
+        allow(mock_request).to receive(:json_response).and_return({})
+      end
+
+      it 'returns nil rather than looping forever' do
+        expect(resolver.call).to be_nil
+        expect(mock_request).to have_received(:fetch).once
+      end
+    end
+  end
+
+  describe 'CaptchaExceededMaxAttempts' do
+    it 'is a StandardError so HwmWorker.run notifies instead of crashing' do
+      expect(described_class::CaptchaExceededMaxAttempts.ancestors).to include(StandardError)
+    end
+
+    it 'is not confused with CaptchaNotResolved' do
+      expect(described_class::CaptchaExceededMaxAttempts).not_to eq(Captcha::Request::CaptchaNotResolved)
+      expect(described_class::CaptchaExceededMaxAttempts.ancestors)
+        .not_to include(Captcha::Request::CaptchaNotResolved)
     end
   end
 
