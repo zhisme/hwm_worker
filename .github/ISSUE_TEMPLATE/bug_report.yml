@@ -1,0 +1,114 @@
+name: Bug report
+description: Report a crash, wrong behaviour or a broken run
+title: "[Bug]: "
+labels: [bug]
+assignees: [zhisme]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, please check [README](https://github.com/zhisme/hwm_worker/blob/master/README.md)
+        and [DOCKER_README](https://github.com/zhisme/hwm_worker/blob/master/DOCKER_README.md).
+
+        **Never paste your `.hwm_credentials.yml`, `secrets.yml`, rucaptcha or rollbar tokens.**
+        Logs may contain your game login — redact it.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened
+      description: What went wrong, and what did you expect instead?
+      placeholder: |
+        Worker logs in but never applies for a job. Expected it to pick the highest paid job.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: entrypoint
+    attributes:
+      label: Entrypoint
+      description: Which command was running?
+      options:
+        - bin/run (work)
+        - bin/hunt (auto-hunt)
+        - bin/setup
+        - bin/console
+        - rake spec
+        - other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: How do you run it
+      options:
+        - docker-compose (worker/hunter services)
+        - plain docker run
+        - kubernetes
+        - local ruby, no docker
+    validations:
+      required: true
+
+  - type: dropdown
+    id: capybara_session
+    attributes:
+      label: Capybara session
+      description: "`capybara.session` value in your `secrets.yml`"
+      options:
+        - selenium_chrome_headless
+        - selenium_chrome
+        - other / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: hwm_worker version
+      description: "From `lib/hwm_worker/version.rb`, or the image tag you deployed"
+      placeholder: "1.3.0"
+    validations:
+      required: true
+
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: "APP_ENV, ruby version (local runs), host OS/arch. Note that the compose setup pins an arm64 Selenium image."
+      placeholder: "APP_ENV=development, ruby 3.4.1, macOS 15 arm64"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. cp secrets.sample.yml secrets.yml, fill in tokens
+        2. docker-compose up worker
+        3. wait for the first work cycle
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: "Output of `docker-compose logs worker` or stdout of the run. Redact logins and tokens."
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I removed logins, passwords and API tokens from everything I pasted
+          required: true
+        - label: I searched existing issues for a duplicate
+          required: true
+        - label: My rucaptcha balance is not empty (if the bug is captcha related)
+          required: false

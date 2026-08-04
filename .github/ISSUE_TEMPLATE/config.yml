@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Docker / compose setup help
+    url: https://github.com/zhisme/hwm_worker/blob/master/DOCKER_README.md
+    about: Selenium, compose services and troubleshooting are documented here first.
+  - name: Ban risk and usage warning
+    url: https://github.com/zhisme/hwm_worker/blob/master/README.md#warning
+    about: Accounts can get banned for running the bot. Read this before reporting account issues.
