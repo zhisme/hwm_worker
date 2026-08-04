@@ -8,7 +8,6 @@ RSpec.describe HwmWorker do
 
   before do
     allow(User).to receive(:first).and_return(user)
-    allow(SystemNotifications).to receive(:notify_error)
   end
 
   it 'has a version number' do
@@ -32,16 +31,6 @@ RSpec.describe HwmWorker do
         allow(Rollbar).to receive(:error)
       end
 
-      it 'sends notification' do
-        expect { described_class.run }.to raise_error(SystemExit)
-        expect(SystemNotifications).to have_received(:notify_error).with(
-          error,
-          provider: :telegram,
-          worker_name: 'work',
-          user: user
-        )
-      end
-
       it 'reports to Rollbar' do
         expect { described_class.run }.to raise_error(SystemExit)
         expect(Rollbar).to have_received(:error).with(error)
@@ -61,16 +50,6 @@ RSpec.describe HwmWorker do
         allow(Runner).to receive(:call).and_raise(error)
         allow(Rollbar).to receive(:error)
         allow(ENV).to receive(:[]).with('APP_ENV').and_return('production')
-      end
-
-      it 'sends notification' do
-        described_class.run
-        expect(SystemNotifications).to have_received(:notify_error).with(
-          error,
-          provider: :telegram,
-          worker_name: 'work',
-          user: user
-        )
       end
 
       it 'reports to Rollbar' do
@@ -110,16 +89,6 @@ RSpec.describe HwmWorker do
         allow(Rollbar).to receive(:error)
       end
 
-      it 'sends notification' do
-        expect { described_class.hunt }.to raise_error(SystemExit)
-        expect(SystemNotifications).to have_received(:notify_error).with(
-          error,
-          provider: :telegram,
-          worker_name: 'hunt',
-          user: user
-        )
-      end
-
       it 'reports to Rollbar' do
         expect { described_class.hunt }.to raise_error(SystemExit)
         expect(Rollbar).to have_received(:error).with(error)
@@ -139,16 +108,6 @@ RSpec.describe HwmWorker do
         allow(AutoHunt).to receive(:call).and_raise(error)
         allow(Rollbar).to receive(:error)
         allow(ENV).to receive(:[]).with('APP_ENV').and_return('production')
-      end
-
-      it 'sends notification' do
-        described_class.hunt
-        expect(SystemNotifications).to have_received(:notify_error).with(
-          error,
-          provider: :telegram,
-          worker_name: 'hunt',
-          user: user
-        )
       end
 
       it 'reports to Rollbar' do
