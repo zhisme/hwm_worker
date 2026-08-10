@@ -7,16 +7,19 @@ module WorkTime
   HOUR = 60 * 60
   DELTA = 10 # if some calculation went wrong on writing working time
   HAUNT_MAX_WAIT = 100
-  MAX_SLEEP = Integer(ENV.fetch('MAX_SLEEP_SECONDS', 240)) # DO NOT CHANGE, SHOULD BE IN SYNC WITH kubernetes.activeDeadlineSeconds
 
   ##
-  # Define time to sleep for worker + DELTA (ocasionally time)
+  # Full time left on the 1 hour cooldown + DELTA (ocasionally time).
+  #
+  # Deliberately uncapped: a capped wait used to wake the worker up before the
+  # cooldown expired, which lands on a page with no job form. Runner compares
+  # this against Deadline.left and skips the run when it does not fit.
   #
   def wait_time(user_id)
     return 0 if FileBase.last_work(user_id).nil?
 
     time_to_wait = (FileBase.last_work(user_id).to_i + HOUR) - Time.now.to_i
-    [time_to_wait.negative? ? 0 : time_to_wait + DELTA, MAX_SLEEP].min
+    time_to_wait.negative? ? 0 : time_to_wait + DELTA
   end
 
   def hunt_wait_time

@@ -122,6 +122,43 @@ RSpec.describe Captcha::Resolver do
       end
     end
 
+    context 'when the job budget runs out mid poll' do
+      before do
+        allow(mock_request).to receive(:solve).and_return(mock_request)
+        allow(mock_request).to receive(:fetch).and_raise(Captcha::Request::CaptchaNotResolved)
+      end
+
+      it 'gives up on the first retry instead of waiting for SIGTERM' do
+        allow(Deadline).to receive(:exceeded?).and_return(true)
+
+        expect { resolver.call }.to raise_error(described_class::CaptchaDeadlineExceeded, /after 1 attempts/)
+        expect(mock_request).to have_received(:fetch).once
+      end
+
+      it 'keeps polling until the budget is actually gone' do
+        allow(Deadline).to receive(:exceeded?).and_return(false, false, true)
+
+        expect { resolver.call }.to raise_error(described_class::CaptchaDeadlineExceeded, /after 3 attempts/)
+        expect(mock_request).to have_received(:fetch).exactly(3).times
+      end
+
+      it 'still prefers MAX_ATTEMPTS when the budget never runs out' do
+        allow(Deadline).to receive(:exceeded?).and_return(false)
+
+        expect { resolver.call }.to raise_error(described_class::CaptchaExceededMaxAttempts)
+      end
+    end
+
+    describe 'CaptchaDeadlineExceeded' do
+      it 'is a StandardError so HwmWorker.run reports it' do
+        expect(described_class::CaptchaDeadlineExceeded.ancestors).to include(StandardError)
+      end
+
+      it 'is distinct from CaptchaExceededMaxAttempts' do
+        expect(described_class::CaptchaDeadlineExceeded).not_to eq(described_class::CaptchaExceededMaxAttempts)
+      end
+    end
+
     context 'when the last poll succeeds' do
       before do
         allow(mock_request).to receive(:solve).and_return(mock_request)
