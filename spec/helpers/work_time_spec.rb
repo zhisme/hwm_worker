@@ -30,14 +30,13 @@ RSpec.describe WorkTime do
           allow(FileBase).to receive(:last_work).with(user_id).and_return(last_work_time.to_s)
         end
 
-        it 'returns remaining time plus DELTA, capped at MAX_SLEEP' do
+        it 'returns remaining time plus DELTA' do
           expected_wait = (last_work_time + WorkTime::HOUR) - current_time.to_i
-          expect(described_class.wait_time(user_id)).to eq([expected_wait + WorkTime::DELTA, WorkTime::MAX_SLEEP].min)
+          expect(described_class.wait_time(user_id)).to eq(expected_wait + WorkTime::DELTA)
         end
 
-        it 'calculates correct wait time (30 minutes remaining, capped)' do
-          # 1800 + 10 = 1810, but capped at MAX_SLEEP (240)
-          expect(described_class.wait_time(user_id)).to eq(WorkTime::MAX_SLEEP)
+        it 'calculates correct wait time (30 minutes remaining)' do
+          expect(described_class.wait_time(user_id)).to eq(1800 + WorkTime::DELTA)
         end
       end
 
@@ -72,8 +71,8 @@ RSpec.describe WorkTime do
           allow(FileBase).to receive(:last_work).with(user_id).and_return(last_work_time.to_s)
         end
 
-        it 'returns MAX_SLEEP (full hour would exceed cap)' do
-          expect(described_class.wait_time(user_id)).to eq(WorkTime::MAX_SLEEP)
+        it 'returns the full hour plus DELTA, uncapped' do
+          expect(described_class.wait_time(user_id)).to eq(WorkTime::HOUR + WorkTime::DELTA)
         end
       end
 
@@ -84,9 +83,8 @@ RSpec.describe WorkTime do
           allow(FileBase).to receive(:last_work).with(user_id).and_return(last_work_time.to_s)
         end
 
-        it 'returns MAX_SLEEP when last_work is in future (exceeds cap)' do
-          # time_to_wait = 3700 + 10 = 3710, capped at MAX_SLEEP
-          expect(described_class.wait_time(user_id)).to eq(WorkTime::MAX_SLEEP)
+        it 'returns more than an hour when last_work is in the future' do
+          expect(described_class.wait_time(user_id)).to eq(WorkTime::HOUR + 100 + WorkTime::DELTA)
         end
       end
     end

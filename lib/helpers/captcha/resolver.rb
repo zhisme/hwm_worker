@@ -1,4 +1,5 @@
 require 'helpers/captcha/request'
+require 'helpers/deadline'
 require 'helpers/work_logger'
 
 module Captcha
@@ -13,6 +14,7 @@ module Captcha
     MAX_ATTEMPTS = 18
 
     CaptchaExceededMaxAttempts = Class.new(StandardError)
+    CaptchaDeadlineExceeded = Class.new(StandardError)
 
     attr_reader :solved_text, :base64_captcha
 
@@ -25,13 +27,32 @@ module Captcha
       request.solve
 
       attempts = 0
+      started_at = Deadline.elapsed
+
+      WorkLogger.current.info { "captcha submitted budget_left=#{Deadline.left_for_log}" }
 
       begin
         attempts += 1
         sleep POLL_INTERVAL
-        request.fetch.json_response['request']
+        solved = request.fetch.json_response['request']
+
+        WorkLogger.current.info do
+          "captcha solved attempts=#{attempts} took=#{Deadline.elapsed - started_at}s " \
+            "budget_left=#{Deadline.left_for_log}"
+        end
+
+        solved
       rescue Captcha::Request::CaptchaNotResolved
-        raise CaptchaExceededMaxAttempts if attempts >= MAX_ATTEMPTS
+        if attempts >= MAX_ATTEMPTS
+          raise CaptchaExceededMaxAttempts,
+                "captcha unsolved after #{attempts} attempts over #{Deadline.elapsed - started_at}s"
+        end
+
+        if Deadline.exceeded?
+          raise CaptchaDeadlineExceeded,
+                "gave up polling rucaptcha after #{attempts} attempts over " \
+                "#{Deadline.elapsed - started_at}s, job budget exhausted"
+        end
 
         WorkLogger.current.debug { "captcha not resolved yet, attempt #{attempts}/#{MAX_ATTEMPTS}" }
         retry

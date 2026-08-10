@@ -5,7 +5,11 @@ $stderr.sync = true
 require 'capybara'
 require 'rollbar'
 require 'config/secrets'
+require 'helpers/deadline'
 require 'selenium/webdriver'
+
+# Start the job budget clock as early as possible.
+Deadline.start!
 
 Rollbar.configure do |config|
   config.access_token = SECRETS['rollbar']['token']
