@@ -1,6 +1,7 @@
 require 'hwm_worker/login'
 require 'hwm_worker/inventory_check'
 require 'hwm_worker/hunt'
+require 'helpers/hunt_schedule'
 require 'models/user'
 
 class AutoHunt
@@ -20,6 +21,10 @@ class AutoHunt
 
     WorkLogger.current.info { "Auto hunt started for #{user.login}" }
     Hunt.call(session: session, user: user)
+
+    # Only after a clean hunt: a failed run keeps the current schedule so it
+    # retries at the same time rather than silently drifting away.
+    HuntSchedule.write_next_run
   end
 
   private
