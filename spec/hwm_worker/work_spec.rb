@@ -32,7 +32,9 @@ RSpec.describe Work do
     # Capybara does the matching for real here: the double returns whether the
     # pattern hits the page text, so a broken pattern fails the spec.
     def stub_page_text(text)
-      allow(session).to receive(:has_text?) { |pattern| pattern.match?(text) }
+      allow(session).to receive(:has_text?) do |matcher, **|
+        matcher.is_a?(Regexp) ? matcher.match?(text) : text.include?(matcher)
+      end
     end
 
     Work::EMPLOYED_MARKERS.each do |marker|
@@ -44,6 +46,31 @@ RSpec.describe Work do
         expect(FileBase).to have_received(:write_last_work).with('test_user')
         expect(logged_lines).to include('xa4ba4 successfully applied for a job. Wait hour.')
       end
+    end
+
+    it 'raises a distinct error when the submit was rejected as too early' do
+      stub_page_text("Free posts: 71\n#{Work::TOO_EARLY_MARKER}")
+
+      expect { described_class.send(:apply_work_without_captcha, session, user) }
+        .to raise_error(Work::AppliedTooEarlyError, /xa4ba4/)
+    end
+
+    it 'does not record a cooldown timestamp for a too early submit' do
+      stub_page_text(Work::TOO_EARLY_MARKER)
+
+      expect { described_class.send(:apply_work_without_captcha, session, user) }
+        .to raise_error(Work::AppliedTooEarlyError)
+
+      expect(FileBase).not_to have_received(:write_last_work)
+      expect(logged_lines).not_to include('xa4ba4 successfully applied for a job. Wait hour.')
+    end
+
+    it 'prefers the employed marker when the page carries both' do
+      stub_page_text("Вы уже устроены.\n#{Work::TOO_EARLY_MARKER}")
+
+      described_class.send(:apply_work_without_captcha, session, user)
+
+      expect(FileBase).to have_received(:write_last_work).with('test_user')
     end
 
     it 'raises when no marker is on the page' do
