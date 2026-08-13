@@ -13,19 +13,23 @@ module Work
   class NoAvailableWork < StandardError; end
   class CannotApplyForJobError < StandardError; end
   class NotAppliedForJobError < StandardError; end
+  class AppliedTooEarlyError < StandardError; end
 
   WORK_URL = "#{HEROESWM_URL}/map.php".freeze
 
-  # The facility page renders one of these once the character is on the hourly
-  # job cooldown, so any of them proves the submit landed. Locale of the page
-  # follows the account language, hence both the English and Russian wording.
+  # The facility page renders one of these once the character holds the job, so
+  # any of them proves the submit landed. Locale of the page follows the account
+  # language, hence both the English and Russian wording.
   EMPLOYED_MARKERS = [
     'You are already employed.',
     'Вы уже устроены.',
-    'Прошло меньше часа с последнего устройства на работу. Ждите.',
   ].freeze
 
   EMPLOYED_PATTERN = Regexp.union(EMPLOYED_MARKERS).freeze
+
+  # Rejection: the submit reached the server before the hourly cooldown was
+  # over, so no job was taken and this hour earns nothing.
+  TOO_EARLY_MARKER = 'Прошло меньше часа с последнего устройства на работу. Ждите.'.freeze
 
   def call(session:, user:)
     find_work(session)
@@ -84,6 +88,13 @@ module Work
     # One waiting matcher for all wordings, so a missing marker costs a single
     # Capybara wait instead of one per variant.
     return if session.has_text?(EMPLOYED_PATTERN)
+
+    # No wait here: the page is already loaded, this only reads which rejection
+    # it carries.
+    if session.has_text?(TOO_EARLY_MARKER, wait: 0)
+      raise AppliedTooEarlyError,
+            "#{user.login} submitted before the cooldown was over, no job taken"
+    end
 
     raise NotAppliedForJobError, "#{user.login} was not employed after submit, marker text missing"
   end
