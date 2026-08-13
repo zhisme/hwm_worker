@@ -12,8 +12,20 @@ module Work
 
   class NoAvailableWork < StandardError; end
   class CannotApplyForJobError < StandardError; end
+  class NotAppliedForJobError < StandardError; end
 
   WORK_URL = "#{HEROESWM_URL}/map.php".freeze
+
+  # The facility page renders one of these once the character is on the hourly
+  # job cooldown, so any of them proves the submit landed. Locale of the page
+  # follows the account language, hence both the English and Russian wording.
+  EMPLOYED_MARKERS = [
+    'You are already employed.',
+    'Вы уже устроены.',
+    'Прошло меньше часа с последнего устройства на работу. Ждите.',
+  ].freeze
+
+  EMPLOYED_PATTERN = Regexp.union(EMPLOYED_MARKERS).freeze
 
   def call(session:, user:)
     find_work(session)
@@ -34,6 +46,7 @@ module Work
 
   def apply_work_without_captcha(session, user)
     session.find('input.getjob_submitBtn').click
+    assert_employed(session, user)
     WorkLogger.current.info { "#{user.login} successfully applied for a job. Wait hour." }
     log_gold(session, user)
     log_interval(user)
@@ -51,6 +64,7 @@ module Work
 
     session.find('.getjob_submitBtn').click
 
+    assert_employed(session, user)
     WorkLogger.current.info { "#{user.login} successfully applied for a job. Wait hour." }
     log_gold(session, user)
     log_interval(user)
@@ -58,6 +72,20 @@ module Work
     FileBase.write_last_work(user.id)
   rescue Capybara::ElementNotFound => e
     raise CannotApplyForJobError, "Cannot apply for job (with captcha): #{e.message}"
+  end
+
+  ##
+  # A submit that silently fails (wrong captcha, cooldown not over yet) still
+  # renders the facility page, so only the employed marker proves the job was
+  # taken. Without it nothing must be written to FileBase, otherwise the next
+  # run waits an hour for a job it never got.
+  #
+  def assert_employed(session, user)
+    # One waiting matcher for all wordings, so a missing marker costs a single
+    # Capybara wait instead of one per variant.
+    return if session.has_text?(EMPLOYED_PATTERN)
+
+    raise NotAppliedForJobError, "#{user.login} was not employed after submit, marker text missing"
   end
 
   ##

@@ -48,7 +48,7 @@ RSpec.describe Runner do
         phases = logged_lines.grep(/^run phase=/).map { |line| line[/phase=(\w+)/, 1] }
         expect(phases).to eq(%w[start slept login_done done])
         expect(logged_lines).to include(
-          a_string_including('run phase=done', 'outcome=applied', 'budget_left=541s')
+          a_string_including('run phase=done', 'outcome=applied', "budget_left=#{240 + Runner::WORK_BUDGET + 1}s")
         )
       end
     end

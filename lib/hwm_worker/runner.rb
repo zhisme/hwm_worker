@@ -8,7 +8,10 @@ class Runner
   # Worst case cost of login, navigation and the captcha round trip. If the
   # cooldown sleep would not leave this much, the run cannot finish and is
   # skipped instead of getting SIGTERMed mid-submit.
-  WORK_BUDGET = 300
+  #
+  # Measured work time after the cooldown sleep sits at 197-215s, so 240 keeps
+  # a margin without skipping runs that would have finished.
+  WORK_BUDGET = 240
 
   def self.call(user:)
     new(user).call
