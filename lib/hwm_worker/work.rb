@@ -2,13 +2,14 @@ require 'config/urls'
 require 'helpers/captcha/main'
 require 'helpers/deadline'
 require 'helpers/file_base'
-require 'helpers/work_time'
 
 ##
 # Find available work
 #
 module Work
   extend self
+
+  HOUR = 60 * 60
 
   class NoAvailableWork < StandardError; end
   class CannotApplyForJobError < StandardError; end
@@ -113,7 +114,7 @@ module Work
 
     interval = Time.now.to_i - last_work.to_i
     WorkLogger.current.info do
-      "applied user=#{user.login} interval=#{interval}s over_cooldown=#{interval - WorkTime::HOUR}s"
+      "applied user=#{user.login} interval=#{interval}s over_cooldown=#{interval - HOUR}s"
     end
   end
 
