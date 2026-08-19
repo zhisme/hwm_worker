@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    hwm_worker (1.3.3)
+    hwm_worker (1.3.4)
       capybara (~> 3.40)
       rest-client
       rollbar
