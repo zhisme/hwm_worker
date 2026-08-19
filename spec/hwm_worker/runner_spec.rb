@@ -25,14 +25,12 @@ RSpec.describe Runner do
   end
 
   describe '#call' do
-    context 'when the cooldown sleep plus work fits the remaining budget' do
+    context 'when work fits the remaining budget' do
       before do
-        allow(WorkTime).to receive(:wait_time).with('test_user').and_return(240)
-        allow(Deadline).to receive(:left).and_return(240 + Runner::WORK_BUDGET + 1)
+        allow(Deadline).to receive(:left).and_return(Runner::WORK_BUDGET + 1)
       end
 
-      it 'sleeps and runs login and work' do
-        expect(runner).to receive(:sleep).with(240)
+      it 'runs login and work' do
         expect(Login).to receive(:call).with(session: session, user: user)
         expect(Work).to receive(:call).with(session: session, user: user)
 
@@ -46,16 +44,15 @@ RSpec.describe Runner do
         runner.call
 
         phases = logged_lines.grep(/^run phase=/).map { |line| line[/phase=(\w+)/, 1] }
-        expect(phases).to eq(%w[start slept login_done done])
+        expect(phases).to eq(%w[start login_done done])
         expect(logged_lines).to include(
-          a_string_including('run phase=done', 'outcome=applied', "budget_left=#{240 + Runner::WORK_BUDGET + 1}s")
+          a_string_including('run phase=done', 'outcome=applied', "budget_left=#{Runner::WORK_BUDGET + 1}s")
         )
       end
     end
 
     context 'when work raises' do
       before do
-        allow(WorkTime).to receive(:wait_time).with('test_user').and_return(0)
         allow(Deadline).to receive(:left).and_return(600)
         allow(Login).to receive(:call)
         allow(Work).to receive(:call).and_raise(Work::CannotApplyForJobError, 'no form')
@@ -70,14 +67,12 @@ RSpec.describe Runner do
       end
     end
 
-    context 'when the sleep would eat the whole budget' do
+    context 'when the budget is too small to finish work' do
       before do
-        allow(WorkTime).to receive(:wait_time).with('test_user').and_return(240)
-        allow(Deadline).to receive(:left).and_return(260)
+        allow(Deadline).to receive(:left).and_return(200)
       end
 
       it 'skips without touching the browser' do
-        expect(runner).not_to receive(:sleep)
         expect(Login).not_to receive(:call)
         expect(Work).not_to receive(:call)
 
@@ -88,7 +83,7 @@ RSpec.describe Runner do
         runner.call
 
         expect(logged_lines).to include(
-          a_string_including('run phase=skip', 'user=xa4ba4', 'reason=budget', 'cooldown_wait=240s', 'budget_left=260s')
+          a_string_including('run phase=skip', 'user=xa4ba4', 'reason=budget', 'work_budget=240s', 'budget_left=200s')
         )
       end
 
@@ -102,8 +97,7 @@ RSpec.describe Runner do
 
     context 'when there is exactly enough budget' do
       before do
-        allow(WorkTime).to receive(:wait_time).with('test_user').and_return(100)
-        allow(Deadline).to receive(:left).and_return(100 + Runner::WORK_BUDGET)
+        allow(Deadline).to receive(:left).and_return(Runner::WORK_BUDGET)
       end
 
       it 'proceeds, RESERVE already covers the boundary' do
@@ -114,10 +108,32 @@ RSpec.describe Runner do
       end
     end
 
+    context 'when short by less than 200ms' do
+      before do
+        allow(Deadline).to receive(:left).and_return(Runner::WORK_BUDGET - 0.125)
+      end
+
+      it 'sleeps the gap and proceeds' do
+        expect(runner).to receive(:sleep).with(0.125)
+        expect(Login).to receive(:call)
+        expect(Work).to receive(:call)
+
+        runner.call
+      end
+
+      it 'logs the slept phase with the gap' do
+        allow(Login).to receive(:call)
+        allow(Work).to receive(:call)
+
+        runner.call
+
+        expect(logged_lines).to include(a_string_including('run phase=slept', 'budget_gap=0.125s'))
+      end
+    end
+
     context 'when one second short of enough budget' do
       before do
-        allow(WorkTime).to receive(:wait_time).with('test_user').and_return(100)
-        allow(Deadline).to receive(:left).and_return(100 + Runner::WORK_BUDGET - 1)
+        allow(Deadline).to receive(:left).and_return(Runner::WORK_BUDGET - 1)
       end
 
       it 'skips' do
@@ -127,9 +143,8 @@ RSpec.describe Runner do
       end
     end
 
-    context 'when no cooldown is pending but the budget is already blown' do
+    context 'when the budget is already blown' do
       before do
-        allow(WorkTime).to receive(:wait_time).with('test_user').and_return(0)
         allow(Deadline).to receive(:left).and_return(-5.0)
       end
 
@@ -142,7 +157,6 @@ RSpec.describe Runner do
 
     context 'when running without a budget' do
       before do
-        allow(WorkTime).to receive(:wait_time).with('test_user').and_return(240)
         allow(Deadline).to receive(:left).and_return(Float::INFINITY)
       end
 

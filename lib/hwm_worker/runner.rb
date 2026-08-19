@@ -1,6 +1,5 @@
 require 'hwm_worker/login'
 require 'hwm_worker/work'
-require 'helpers/work_time'
 require 'helpers/deadline'
 require 'models/user'
 
@@ -18,18 +17,19 @@ class Runner
   end
 
   def call
-    wait = WorkTime.wait_time(user.id)
+    log_phase('start', "work_budget=#{WORK_BUDGET}s")
 
-    log_phase('start', "cooldown_wait=#{wait}s work_budget=#{WORK_BUDGET}s")
-
-    if wait + WORK_BUDGET > Deadline.left
-      log_phase('skip', "reason=budget cooldown_wait=#{wait}s work_budget=#{WORK_BUDGET}s")
-      return
+    gap = WORK_BUDGET - Deadline.left
+    if gap.positive?
+      if gap < 0.2
+        WorkLogger.current.info { "Sleeping for #{gap} to fit budget." }
+        sleep gap
+        log_phase('slept', "budget_gap=#{gap}s")
+      else
+        log_phase('skip', "reason=budget work_budget=#{WORK_BUDGET}s")
+        return
+      end
     end
-
-    WorkLogger.current.info { "Sleeping for #{wait}." }
-    sleep wait
-    log_phase('slept', "cooldown_wait=#{wait}s")
 
     WorkLogger.current.info { "Try to login with #{user.login}" }
     Login.call(session: session, user: user)
