@@ -1,0 +1,23 @@
+##
+# Defines whether time to work has started
+#
+module WorkTime
+  extend self
+
+  HOUR = 60 * 60
+  DELTA = 10 # if some calculation went wrong on writing working time
+
+  ##
+  # Full time left on the 1 hour cooldown + DELTA (ocasionally time).
+  #
+  # Deliberately uncapped: a capped wait used to wake the worker up before the
+  # cooldown expired, which lands on a page with no job form. Runner compares
+  # this against Deadline.left and skips the run when it does not fit.
+  #
+  def wait_time(user_id)
+    return 0 if FileBase.last_work(user_id).nil?
+
+    time_to_wait = (FileBase.last_work(user_id).to_i + HOUR) - Time.now.to_i
+    time_to_wait.negative? ? 0 : time_to_wait + DELTA
+  end
+end

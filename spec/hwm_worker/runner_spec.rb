@@ -1,6 +1,7 @@
 require 'spec_helper'
 require 'hwm_worker/runner'
 require 'helpers/deadline'
+require 'helpers/work_time'
 
 RSpec.describe Runner do
   let(:user) { instance_double('User', id: 'test_user', login: 'xa4ba4') }
@@ -22,6 +23,7 @@ RSpec.describe Runner do
     runner.instance_variable_set(:@session, session)
     allow(WorkLogger).to receive(:current).and_return(logger)
     allow(runner).to receive(:sleep)
+    allow(WorkTime).to receive(:wait_time).with('test_user').and_return(0)
   end
 
   describe '#call' do
@@ -152,6 +154,52 @@ RSpec.describe Runner do
         expect(Login).not_to receive(:call)
 
         runner.call
+      end
+    end
+
+    context 'when a cooldown wait is pending and fits the budget' do
+      before do
+        allow(WorkTime).to receive(:wait_time).with('test_user').and_return(37)
+        allow(Deadline).to receive(:left).and_return(37 + Runner::WORK_BUDGET + 1)
+      end
+
+      it 'sleeps the cooldown before touching the browser, so it does not land on the job page too early' do
+        expect(runner).to receive(:sleep).with(37).ordered
+        expect(Login).to receive(:call).ordered
+        expect(Work).to receive(:call)
+
+        runner.call
+      end
+
+      it 'logs the slept phase with the cooldown wait' do
+        allow(Login).to receive(:call)
+        allow(Work).to receive(:call)
+
+        runner.call
+
+        expect(logged_lines).to include(a_string_including('run phase=slept', 'cooldown_wait=37s'))
+      end
+    end
+
+    context 'when the cooldown wait pushes the total past the budget' do
+      before do
+        allow(WorkTime).to receive(:wait_time).with('test_user').and_return(300)
+        allow(Deadline).to receive(:left).and_return(300 + Runner::WORK_BUDGET - 1)
+      end
+
+      it 'skips without touching the browser' do
+        expect(Login).not_to receive(:call)
+        expect(Work).not_to receive(:call)
+
+        runner.call
+      end
+
+      it 'logs the cooldown wait in the skip reason' do
+        runner.call
+
+        expect(logged_lines).to include(
+          a_string_including('run phase=skip', 'reason=budget', 'cooldown_wait=300s')
+        )
       end
     end
 
