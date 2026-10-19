@@ -127,8 +127,10 @@ module Work
 
   def find_work(session)
     session.visit(WORK_URL)
-    work_link = session.find('table.wb tr:nth-child(3) td:last-child a')
-    work_link.assert_text('»»»')
+    jobs_table = session.find('table.wb', match: :first)
+    work_link = jobs_table.first('tr td:last-child a', text: '»»»', minimum: 0)
+    raise NoAvailableWork, 'no facility on the map has a free post this hour' if work_link.nil?
+
     work_link.click
   rescue Selenium::WebDriver::Error::ElementNotInteractableError
     raise NoAvailableWork

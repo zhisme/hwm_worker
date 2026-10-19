@@ -111,6 +111,100 @@ RSpec.describe Work do
     end
   end
 
+  describe 'job row selection' do
+    let(:fixture) { File.read(File.expand_path('../fixtures/map.html', __dir__)) }
+
+    let(:map_html) { fixture }
+    let(:app) do
+      html = map_html
+      lambda do |env|
+        body = env['PATH_INFO'].end_with?('map.php') ? html : "facility #{env['PATH_INFO']}"
+        [200, { 'content-type' => 'text/html; charset=utf-8' }, [body]]
+      end
+    end
+    let(:session) { Capybara::Session.new(:rack_test, app) }
+
+    # Drops the »»» apply link text from the given facility rows, the way a
+    # facility without free posts left the old row 3 lookup on 2026-10-18.
+    def full(html, *ids)
+      ids.reduce(html) do |page, id|
+        page.sub(/(object-info\.php\?id=#{id}"\);.*)&nbsp;&raquo;&raquo;&raquo;&nbsp;/, '\1&nbsp;')
+      end
+    end
+
+    it 'starts from a fixture where every facility has an apply link' do
+      expect(fixture.scan('&raquo;&raquo;&raquo;').size).to eq(5)
+    end
+
+    context 'when the first facility has a free post' do
+      it 'opens the first facility' do
+        described_class.send(:find_work, session)
+
+        expect(session.current_url).to end_with('/object-info.php?id=19')
+      end
+    end
+
+    context 'when the first facilities are full' do
+      let(:map_html) { full(fixture, 19, 302) }
+
+      it 'opens the first facility that has a free post' do
+        described_class.send(:find_work, session)
+
+        expect(session.current_url).to end_with('/object-info.php?id=281')
+      end
+    end
+
+    context 'when only the last facility has a free post' do
+      let(:map_html) { full(fixture, 19, 302, 281, 344) }
+
+      it 'opens it' do
+        described_class.send(:find_work, session)
+
+        expect(session.current_url).to end_with('/object-info.php?id=260')
+      end
+    end
+
+    context 'when no facility has a free post' do
+      let(:map_html) { full(fixture, 19, 302, 281, 344, 260) }
+
+      it 'raises no available work' do
+        expect { described_class.send(:find_work, session) }
+          .to raise_error(Work::NoAvailableWork, /no facility/)
+      end
+    end
+
+    context 'when the table has no facility rows' do
+      let(:map_html) { fixture.gsub(/^<tr  class="map_obj_table_hover".*$/, '') }
+
+      it 'raises no available work' do
+        expect { described_class.send(:find_work, session) }
+          .to raise_error(Work::NoAvailableWork)
+      end
+    end
+
+    context 'when »»» appears outside the apply column' do
+      let(:map_html) do
+        full(fixture, 19, 302, 281, 344, 260)
+          .sub('&nbsp;Sulphur dune&nbsp;', '&nbsp;&raquo;&raquo;&raquo;&nbsp;')
+          .sub('</center>', '<a href="elsewhere.php">&raquo;&raquo;&raquo;</a></center>')
+      end
+
+      it 'does not follow it' do
+        expect { described_class.send(:find_work, session) }
+          .to raise_error(Work::NoAvailableWork)
+      end
+    end
+
+    context 'when the jobs table is missing' do
+      let(:map_html) { '<html><body>Please log in</body></html>' }
+
+      it 'raises element not found instead of reporting no work' do
+        expect { described_class.send(:find_work, session) }
+          .to raise_error(Capybara::ElementNotFound)
+      end
+    end
+  end
+
   describe 'interval logging' do
     let(:now) { Time.now }
 
