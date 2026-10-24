@@ -10,6 +10,7 @@ module Work
   extend self
 
   HOUR = 60 * 60
+  MAX_APPLY_ATTEMPTS = 2
 
   class NoAvailableWork < StandardError; end
   class CannotApplyForJobError < StandardError; end
@@ -33,8 +34,19 @@ module Work
   TOO_EARLY_MARKER = 'Прошло меньше часа с последнего устройства на работу. Ждите.'.freeze
 
   def call(session:, user:)
-    find_work(session)
-    apply_work(session, user)
+    attempt = 1
+    begin
+      find_work(session)
+      apply_work(session, user)
+    rescue NotAppliedForJobError
+      raise if attempt >= MAX_APPLY_ATTEMPTS || Deadline.exceeded?
+
+      attempt += 1
+      WorkLogger.current.info do
+        "apply retry user=#{user.login} attempt=#{attempt} budget_left=#{Deadline.left_for_log}"
+      end
+      retry
+    end
   end
 
   private
@@ -75,8 +87,19 @@ module Work
     log_interval(user)
     Rollbar.info("#{user.login} successfully applied for a job.")
     FileBase.write_last_work(user.id)
+  rescue NotAppliedForJobError
+    report_bad_captcha
+    raise
   rescue Capybara::ElementNotFound => e
     raise CannotApplyForJobError, "Cannot apply for job (with captcha): #{e.message}"
+  end
+
+  def report_bad_captcha
+    captcha_id = Captcha::Request.last_captcha_id
+    Captcha::Request.report_bad(captcha_id)
+    WorkLogger.current.info { "captcha report_bad sent id=#{captcha_id}" }
+  rescue StandardError => e
+    WorkLogger.current.info { "captcha report_bad failed id=#{captcha_id} error=#{e.class}" }
   end
 
   ##

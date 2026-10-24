@@ -97,17 +97,127 @@ RSpec.describe Work do
       expect(logged_lines).not_to include('xa4ba4 successfully applied for a job. Wait hour.')
     end
 
-    it 'does not swallow the missing marker as a captcha apply failure' do
-      stub_page_text('Free posts: 71')
-      allow(session).to receive(:find).with('#code').and_return(submit_button)
-      allow(session).to receive(:find).with('.getjob_submitBtn').and_return(submit_button)
-      allow(submit_button).to receive(:fill_in)
-      allow(Captcha::Main).to receive(:call).and_return('1234')
-      captcha_el = instance_double(Capybara::Node::Element)
-      allow(captcha_el).to receive(:[]).with(:src).and_return('https://example.com/captcha.png')
+    context 'when applying with a captcha' do
+      let(:captcha_el) { instance_double(Capybara::Node::Element) }
 
-      expect { described_class.send(:apply_work_with_captcha, session, user, captcha_el) }
+      before do
+        allow(session).to receive(:find).with('#code').and_return(submit_button)
+        allow(session).to receive(:find).with('.getjob_submitBtn').and_return(submit_button)
+        allow(submit_button).to receive(:fill_in)
+        allow(Captcha::Main).to receive(:call).and_return('1234')
+        allow(captcha_el).to receive(:[]).with(:src).and_return('https://example.com/captcha.png')
+        allow(Captcha::Request).to receive(:last_captcha_id).and_return('777')
+        allow(Captcha::Request).to receive(:report_bad)
+      end
+
+      it 'does not swallow the missing marker as a captcha apply failure' do
+        stub_page_text('Free posts: 71')
+
+        expect { described_class.send(:apply_work_with_captcha, session, user, captcha_el) }
+          .to raise_error(Work::NotAppliedForJobError)
+      end
+
+      it 'reports the captcha as wrongly solved when the marker is missing' do
+        stub_page_text('Free posts: 71')
+
+        expect { described_class.send(:apply_work_with_captcha, session, user, captcha_el) }
+          .to raise_error(Work::NotAppliedForJobError)
+
+        expect(Captcha::Request).to have_received(:report_bad).with('777')
+      end
+
+      it 'keeps the original error when the report itself fails' do
+        stub_page_text('Free posts: 71')
+        allow(Captcha::Request).to receive(:report_bad).and_raise(SocketError, 'getaddrinfo failed')
+
+        expect { described_class.send(:apply_work_with_captcha, session, user, captcha_el) }
+          .to raise_error(Work::NotAppliedForJobError)
+
+        expect(logged_lines).to include('captcha report_bad failed id=777 error=SocketError')
+      end
+
+      it 'does not report the captcha when the job was taken' do
+        stub_page_text('You are already employed.')
+
+        described_class.send(:apply_work_with_captcha, session, user, captcha_el)
+
+        expect(Captcha::Request).not_to have_received(:report_bad)
+      end
+
+      it 'does not report the captcha when the submit was too early' do
+        stub_page_text(Work::TOO_EARLY_MARKER)
+
+        expect { described_class.send(:apply_work_with_captcha, session, user, captcha_el) }
+          .to raise_error(Work::AppliedTooEarlyError)
+
+        expect(Captcha::Request).not_to have_received(:report_bad)
+      end
+    end
+
+    it 'does not report a captcha on the manual branch' do
+      stub_page_text('Free posts: 71')
+      allow(Captcha::Request).to receive(:report_bad)
+
+      expect { described_class.send(:apply_work_without_captcha, session, user) }
         .to raise_error(Work::NotAppliedForJobError)
+
+      expect(Captcha::Request).not_to have_received(:report_bad)
+    end
+  end
+
+  describe 'retry after a rejected submit' do
+    let(:session) { instance_double(Capybara::Session) }
+    let(:attempts) { [] }
+
+    before do
+      allow(described_class).to receive(:find_work) { attempts << :find }
+      allow(Deadline).to receive(:exceeded?).and_return(false)
+    end
+
+    def apply_results(*results)
+      queue = results.dup
+      allow(described_class).to receive(:apply_work) do
+        result = queue.shift
+        raise result if result
+      end
+    end
+
+    it 'applies again from the map when the first submit was not taken' do
+      apply_results(Work::NotAppliedForJobError, nil)
+
+      expect { described_class.call(session: session, user: user) }.not_to raise_error
+
+      expect(attempts.size).to eq(2)
+      expect(logged_lines).to include(a_string_starting_with('apply retry user=xa4ba4 attempt=2'))
+    end
+
+    it 'gives up after the second rejected submit' do
+      apply_results(Work::NotAppliedForJobError, Work::NotAppliedForJobError, nil)
+
+      expect { described_class.call(session: session, user: user) }
+        .to raise_error(Work::NotAppliedForJobError)
+
+      expect(attempts.size).to eq(2)
+    end
+
+    it 'does not retry when the job budget is exhausted' do
+      apply_results(Work::NotAppliedForJobError, nil)
+      allow(Deadline).to receive(:exceeded?).and_return(true)
+
+      expect { described_class.call(session: session, user: user) }
+        .to raise_error(Work::NotAppliedForJobError)
+
+      expect(attempts.size).to eq(1)
+    end
+
+    [Work::AppliedTooEarlyError, Work::CannotApplyForJobError, Work::NoAvailableWork].each do |error|
+      it "does not retry on #{error}" do
+        apply_results(error, nil)
+
+        expect { described_class.call(session: session, user: user) }.to raise_error(error)
+
+        expect(attempts.size).to eq(1)
+      end
     end
   end
 

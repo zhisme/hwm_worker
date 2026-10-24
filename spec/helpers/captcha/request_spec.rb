@@ -174,6 +174,54 @@ RSpec.describe Captcha::Request do
     end
   end
 
+  describe '.last_captcha_id' do
+    let(:mock_request) { instance_double(RestClient::Request) }
+
+    before do
+      described_class.last_captcha_id = 'previous'
+      allow(RestClient::Request).to receive(:new).and_return(mock_request)
+    end
+
+    it 'remembers the id of an accepted captcha' do
+      allow(mock_request).to receive(:execute).and_return(double(body: '{"status": 1, "request": "12345"}'))
+
+      request_instance.solve
+
+      expect(described_class.last_captcha_id).to eq('12345')
+    end
+
+    it 'keeps the previous id when the upload was rejected' do
+      allow(mock_request).to receive(:execute)
+        .and_return(double(body: '{"status": 0, "request": "ERROR_ZERO_BALANCE", "error_text": "no funds"}'))
+
+      expect { request_instance.solve }.to raise_error(Captcha::Request::ZeroBalanceException)
+
+      expect(described_class.last_captcha_id).to eq('previous')
+    end
+  end
+
+  describe '.report_bad' do
+    let(:mock_request) { instance_double(RestClient::Request, execute: double(body: '{"status": 1}')) }
+
+    it 'sends reportbad for the given id' do
+      expect(RestClient::Request).to receive(:new).with(
+        method: :get,
+        url: "http://rucaptcha.com/res.php?key=#{Captcha::Request::API_KEY}&action=reportbad&id=12345&json=1"
+      ).and_return(mock_request)
+
+      described_class.report_bad('12345')
+
+      expect(mock_request).to have_received(:execute)
+    end
+
+    it 'propagates transport errors to the caller' do
+      allow(RestClient::Request).to receive(:new).and_return(mock_request)
+      allow(mock_request).to receive(:execute).and_raise(RestClient::ServiceUnavailable)
+
+      expect { described_class.report_bad('12345') }.to raise_error(RestClient::ServiceUnavailable)
+    end
+  end
+
   describe 'integration test: solve and fetch workflow' do
     let(:solve_mock_request) { instance_double(RestClient::Request) }
     let(:fetch_mock_request) { instance_double(RestClient::Request) }

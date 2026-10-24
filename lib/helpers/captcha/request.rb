@@ -17,6 +17,17 @@ module Captcha
 
     attr_reader :json_response
 
+    class << self
+      attr_accessor :last_captcha_id
+    end
+
+    def self.report_bad(captcha_id)
+      RestClient::Request.new(
+        method: :get,
+        url: "#{FETCH_URL}?key=#{API_KEY}&action=reportbad&id=#{captcha_id}&json=1"
+      ).execute
+    end
+
     def initialize(base64_captcha:)
       @base64_captcha = base64_captcha
       @captcha_id = ''
@@ -34,7 +45,10 @@ module Captcha
       fetch_response(solve_request)
       assign_captcha_to_solve_id
 
-      return self if success?
+      if success?
+        self.class.last_captcha_id = captcha_id
+        return self
+      end
 
       handle_failure!
     end
