@@ -4,7 +4,7 @@ require 'helpers/deadline'
 require 'helpers/work_time'
 
 RSpec.describe Runner do
-  let(:user) { instance_double('User', id: 'test_user', login: 'xa4ba4') }
+  let(:user) { instance_double('User', id: 'test_user', login: 'test_login') }
   let(:session) { instance_double(Capybara::Session) }
   let(:runner) { described_class.allocate }
   let(:logged_lines) { [] }
@@ -85,7 +85,7 @@ RSpec.describe Runner do
         runner.call
 
         expect(logged_lines).to include(
-          a_string_including('run phase=skip', 'user=xa4ba4', 'reason=budget', 'work_budget=240s', 'budget_left=200s')
+          a_string_including('run phase=skip', 'user=test_login', 'reason=budget', 'work_budget=240s', 'budget_left=200s')
         )
       end
 

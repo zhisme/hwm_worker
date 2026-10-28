@@ -2,7 +2,7 @@ require 'spec_helper'
 require 'hwm_worker/work'
 
 RSpec.describe Work do
-  let(:user) { instance_double('User', id: 'test_user', login: 'xa4ba4') }
+  let(:user) { instance_double('User', id: 'test_user', login: 'test_login') }
   let(:logged_lines) { [] }
   let(:logger) do
     lines = logged_lines
@@ -43,8 +43,8 @@ RSpec.describe Work do
       it 'warns with the parsed coefficient before applying' do
         described_class.call(session: session, user: user)
 
-        expect(events).to eq(['xa4ba4 has the workaholic penalty, wage is x0.1 until a battle is won', :apply])
-        expect(logged_lines).to include('xa4ba4 has the workaholic penalty, wage is x0.1 until a battle is won')
+        expect(events).to eq(['test_login has the workaholic penalty, wage is x0.1 until a battle is won', :apply])
+        expect(logged_lines).to include('test_login has the workaholic penalty, wage is x0.1 until a battle is won')
       end
     end
 
@@ -109,7 +109,7 @@ RSpec.describe Work do
         described_class.send(:apply_work_without_captcha, session, user)
 
         expect(FileBase).to have_received(:write_last_work).with('test_user')
-        expect(logged_lines).to include('xa4ba4 successfully applied for a job. Wait hour.')
+        expect(logged_lines).to include('test_login successfully applied for a job. Wait hour.')
       end
     end
 
@@ -117,7 +117,7 @@ RSpec.describe Work do
       stub_page_text("Free posts: 71\n#{Work::TOO_EARLY_MARKER}")
 
       expect { described_class.send(:apply_work_without_captcha, session, user) }
-        .to raise_error(Work::AppliedTooEarlyError, /xa4ba4/)
+        .to raise_error(Work::AppliedTooEarlyError, /test_login/)
     end
 
     it 'does not record a cooldown timestamp for a too early submit' do
@@ -127,7 +127,7 @@ RSpec.describe Work do
         .to raise_error(Work::AppliedTooEarlyError)
 
       expect(FileBase).not_to have_received(:write_last_work)
-      expect(logged_lines).not_to include('xa4ba4 successfully applied for a job. Wait hour.')
+      expect(logged_lines).not_to include('test_login successfully applied for a job. Wait hour.')
     end
 
     it 'prefers the employed marker when the page carries both' do
@@ -142,7 +142,7 @@ RSpec.describe Work do
       stub_page_text('Free posts: 71')
 
       expect { described_class.send(:apply_work_without_captcha, session, user) }
-        .to raise_error(Work::NotAppliedForJobError, /xa4ba4/)
+        .to raise_error(Work::NotAppliedForJobError, /test_login/)
     end
 
     it 'raises on a near miss of the marker wording' do
@@ -159,7 +159,7 @@ RSpec.describe Work do
         .to raise_error(Work::NotAppliedForJobError)
 
       expect(FileBase).not_to have_received(:write_last_work)
-      expect(logged_lines).not_to include('xa4ba4 successfully applied for a job. Wait hour.')
+      expect(logged_lines).not_to include('test_login successfully applied for a job. Wait hour.')
     end
 
     context 'when applying with a captcha' do
@@ -254,7 +254,7 @@ RSpec.describe Work do
       expect { described_class.call(session: session, user: user) }.not_to raise_error
 
       expect(attempts.size).to eq(2)
-      expect(logged_lines).to include(a_string_starting_with('apply retry user=xa4ba4 attempt=2'))
+      expect(logged_lines).to include(a_string_starting_with('apply retry user=test_login attempt=2'))
     end
 
     it 'gives up after the second rejected submit' do
@@ -392,7 +392,7 @@ RSpec.describe Work do
 
         described_class.send(:log_interval, user)
 
-        expect(logged_lines).to include('applied user=xa4ba4 interval=3712s over_cooldown=112s')
+        expect(logged_lines).to include('applied user=test_login interval=3712s over_cooldown=112s')
       end
 
       it 'reports a negative over_cooldown when applied too early' do
@@ -400,7 +400,7 @@ RSpec.describe Work do
 
         described_class.send(:log_interval, user)
 
-        expect(logged_lines).to include('applied user=xa4ba4 interval=3400s over_cooldown=-200s')
+        expect(logged_lines).to include('applied user=test_login interval=3400s over_cooldown=-200s')
       end
 
       it 'reports a large gap when hourly runs were skipped' do
@@ -408,7 +408,7 @@ RSpec.describe Work do
 
         described_class.send(:log_interval, user)
 
-        expect(logged_lines).to include('applied user=xa4ba4 interval=7300s over_cooldown=3700s')
+        expect(logged_lines).to include('applied user=test_login interval=7300s over_cooldown=3700s')
       end
     end
 
@@ -417,7 +417,7 @@ RSpec.describe Work do
         allow(FileBase).to receive(:last_work).with('test_user').and_return(nil)
 
         expect { described_class.send(:log_interval, user) }.not_to raise_error
-        expect(logged_lines).to include('applied user=xa4ba4 interval=none')
+        expect(logged_lines).to include('applied user=test_login interval=none')
       end
     end
   end

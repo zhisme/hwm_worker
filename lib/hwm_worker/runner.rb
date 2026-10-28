@@ -57,7 +57,7 @@ class Runner
 
   ##
   # One greppable line per phase so runs can be compared over time:
-  #   run phase=login_done user=xa4ba4 elapsed=95s budget_left=525s
+  #   run phase=login_done user=test_login elapsed=95s budget_left=525s
   #
   def log_phase(phase, extra = nil)
     WorkLogger.current.info do
