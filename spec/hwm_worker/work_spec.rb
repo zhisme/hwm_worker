@@ -16,42 +16,66 @@ RSpec.describe Work do
   before { allow(WorkLogger).to receive(:current).and_return(logger) }
 
   describe 'workaholic penalty' do
-    let(:session) { instance_double(Capybara::Session) }
+    let(:page_html) { '' }
+    let(:app) do
+      html = page_html
+      ->(_env) { [200, { 'content-type' => 'text/html; charset=utf-8' }, [html]] }
+    end
+    let(:session) { Capybara::Session.new(:rack_test, app) }
     let(:events) { [] }
 
     before do
-      allow(described_class).to receive(:find_work)
+      allow(described_class).to receive(:find_work) { session.visit('/') }
       allow(described_class).to receive(:apply_work) { events << :apply }
       allow(Rollbar).to receive(:warning) { |message| events << message }
     end
 
-    def stub_page_text(text)
-      allow(session).to receive(:has_text?) { |marker, **| text.include?(marker) }
+    # The wage cell of the facility page, where the penalty multiplier appears
+    # in red between the base multiplier and the result.
+    def wage_cell(penalty)
+      '<tr><td>Зарплата: </td><td><b><table><tr><td><b>171</b></td></tr></table></b></td>' \
+        "<td>*1.5#{penalty} = 25</td></tr>"
     end
 
-    it 'warns before applying when the facility page shows the penalty' do
-      stub_page_text("Зарплата: 171 *1.5*0.1 (#{Work::WORKAHOLIC_MARKER}) = 25\nВам нужно победить в битве.")
+    context 'when the facility page shows the penalty' do
+      let(:page_html) { wage_cell('<font color="#E65054"><b>*0.1 (штраф трудоголика)</b></font>') }
 
-      described_class.call(session: session, user: user)
+      it 'warns with the parsed coefficient before applying' do
+        described_class.call(session: session, user: user)
 
-      expect(events).to eq(['xa4ba4 has the workaholic penalty, wage is x0.1 until a battle is won', :apply])
-      expect(logged_lines).to include('xa4ba4 has the workaholic penalty, wage is x0.1 until a battle is won')
+        expect(events).to eq(['xa4ba4 has the workaholic penalty, wage is x0.1 until a battle is won', :apply])
+        expect(logged_lines).to include('xa4ba4 has the workaholic penalty, wage is x0.1 until a battle is won')
+      end
     end
 
-    it 'applies without a warning when the wage line has no penalty' do
-      stub_page_text('Зарплата: 171 *1.5 = 256')
+    context 'when the penalty coefficient differs' do
+      let(:page_html) { wage_cell('<font color="#E65054"><b>*0.25 (штраф трудоголика)</b></font>') }
 
-      described_class.call(session: session, user: user)
+      it 'reports the coefficient from the page' do
+        described_class.call(session: session, user: user)
 
-      expect(events).to eq([:apply])
+        expect(events.first).to include('wage is x0.25 until')
+      end
     end
 
-    it 'does not match a near miss of the penalty wording' do
-      stub_page_text('штраф трудоголик')
+    context 'when the wage line has no penalty' do
+      let(:page_html) { wage_cell('') }
 
-      described_class.call(session: session, user: user)
+      it 'applies without a warning' do
+        described_class.call(session: session, user: user)
 
-      expect(events).to eq([:apply])
+        expect(events).to eq([:apply])
+      end
+    end
+
+    context 'when the wording is a near miss' do
+      let(:page_html) { wage_cell('<font color="#E65054"><b>*0.1 (штраф трудоголик)</b></font>') }
+
+      it 'applies without a warning' do
+        described_class.call(session: session, user: user)
+
+        expect(events).to eq([:apply])
+      end
     end
   end
 
@@ -212,7 +236,7 @@ RSpec.describe Work do
 
     before do
       allow(described_class).to receive(:find_work) { attempts << :find }
-      allow(session).to receive(:has_text?).and_return(false)
+      allow(session).to receive(:find).and_raise(Capybara::ElementNotFound)
       allow(Deadline).to receive(:exceeded?).and_return(false)
     end
 

@@ -55,11 +55,13 @@ module Work
   private
 
   def warn_workaholic(session, user)
-    return unless session.has_text?(WORKAHOLIC_MARKER)
-
-    message = "#{user.login} has the workaholic penalty, wage is x0.1 until a battle is won"
+    penalty = session.find('b', text: WORKAHOLIC_MARKER)
+    coefficient = penalty.text[/\*([\d.]+)/, 1]
+    message = "#{user.login} has the workaholic penalty, wage is x#{coefficient} until a battle is won"
     WorkLogger.current.warn { message }
     Rollbar.warning(message)
+  rescue Capybara::ElementNotFound
+    nil
   end
 
   def apply_work(session, user)
