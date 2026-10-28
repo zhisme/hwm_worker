@@ -9,10 +9,51 @@ RSpec.describe Work do
     Class.new do
       define_method(:info) { |message = nil, &block| lines << (block ? block.call : message) }
       alias_method :debug, :info
+      alias_method :warn, :info
     end.new
   end
 
   before { allow(WorkLogger).to receive(:current).and_return(logger) }
+
+  describe 'workaholic penalty' do
+    let(:session) { instance_double(Capybara::Session) }
+    let(:events) { [] }
+
+    before do
+      allow(described_class).to receive(:find_work)
+      allow(described_class).to receive(:apply_work) { events << :apply }
+      allow(Rollbar).to receive(:warning) { |message| events << message }
+    end
+
+    def stub_page_text(text)
+      allow(session).to receive(:has_text?) { |marker, **| text.include?(marker) }
+    end
+
+    it 'warns before applying when the facility page shows the penalty' do
+      stub_page_text("Зарплата: 171 *1.5*0.1 (#{Work::WORKAHOLIC_MARKER}) = 25\nВам нужно победить в битве.")
+
+      described_class.call(session: session, user: user)
+
+      expect(events).to eq(['xa4ba4 has the workaholic penalty, wage is x0.1 until a battle is won', :apply])
+      expect(logged_lines).to include('xa4ba4 has the workaholic penalty, wage is x0.1 until a battle is won')
+    end
+
+    it 'applies without a warning when the wage line has no penalty' do
+      stub_page_text('Зарплата: 171 *1.5 = 256')
+
+      described_class.call(session: session, user: user)
+
+      expect(events).to eq([:apply])
+    end
+
+    it 'does not match a near miss of the penalty wording' do
+      stub_page_text('штраф трудоголик')
+
+      described_class.call(session: session, user: user)
+
+      expect(events).to eq([:apply])
+    end
+  end
 
   describe 'application verification' do
     let(:session) { instance_double(Capybara::Session) }
@@ -171,6 +212,7 @@ RSpec.describe Work do
 
     before do
       allow(described_class).to receive(:find_work) { attempts << :find }
+      allow(session).to receive(:has_text?).and_return(false)
       allow(Deadline).to receive(:exceeded?).and_return(false)
     end
 

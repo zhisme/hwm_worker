@@ -33,10 +33,13 @@ module Work
   # over, so no job was taken and this hour earns nothing.
   TOO_EARLY_MARKER = 'Прошло меньше часа с последнего устройства на работу. Ждите.'.freeze
 
+  WORKAHOLIC_MARKER = 'штраф трудоголика'.freeze
+
   def call(session:, user:)
     attempt = 1
     begin
       find_work(session)
+      warn_workaholic(session, user)
       apply_work(session, user)
     rescue NotAppliedForJobError
       raise if attempt >= MAX_APPLY_ATTEMPTS || Deadline.exceeded?
@@ -50,6 +53,14 @@ module Work
   end
 
   private
+
+  def warn_workaholic(session, user)
+    return unless session.has_text?(WORKAHOLIC_MARKER)
+
+    message = "#{user.login} has the workaholic penalty, wage is x0.1 until a battle is won"
+    WorkLogger.current.warn { message }
+    Rollbar.warning(message)
+  end
 
   def apply_work(session, user)
     captcha_el = session.find('[name="work"] img.getjob_capcha')
