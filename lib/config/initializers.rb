@@ -13,6 +13,8 @@ Deadline.start!
 
 Rollbar.configure do |config|
   config.access_token = SECRETS['rollbar']['token']
+  # Plain-Ruby rollbar leaves this nil, which reports every item as "unspecified".
+  config.environment = ENV['APP_ENV'] || 'development'
 end
 
 # Determine Selenium URL based on environment
