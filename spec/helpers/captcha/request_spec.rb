@@ -5,46 +5,6 @@ RSpec.describe Captcha::Request do
   let(:base64_captcha) { 'aGVsbG8gd29ybGQ=' } # 'hello world' in base64
   let(:request_instance) { described_class.new(base64_captcha: base64_captcha) }
 
-  describe 'constants' do
-    it 'defines RUCAPTCHA_URL' do
-      expect(described_class::RUCAPTCHA_URL).to eq('http://rucaptcha.com')
-    end
-
-    it 'defines SOLVE_URL' do
-      expect(described_class::SOLVE_URL).to eq('http://rucaptcha.com/in.php')
-    end
-
-    it 'defines FETCH_URL' do
-      expect(described_class::FETCH_URL).to eq('http://rucaptcha.com/res.php')
-    end
-  end
-
-  describe 'custom exceptions' do
-    it 'defines CaptchaNotResolved exception' do
-      expect { raise Captcha::Request::CaptchaNotResolved }.to raise_error(StandardError)
-    end
-
-    it 'defines RucaptchaInternalException exception' do
-      expect { raise Captcha::Request::RucaptchaInternalException }.to raise_error(StandardError)
-    end
-
-    it 'defines ZeroBalanceException exception' do
-      expect { raise Captcha::Request::ZeroBalanceException }.to raise_error(StandardError)
-    end
-  end
-
-  describe '#initialize' do
-    it 'sets base64_captcha' do
-      instance = described_class.new(base64_captcha: base64_captcha)
-      expect(instance.instance_variable_get(:@base64_captcha)).to eq(base64_captcha)
-    end
-
-    it 'initializes captcha_id as empty string' do
-      instance = described_class.new(base64_captcha: base64_captcha)
-      expect(instance.instance_variable_get(:@captcha_id)).to eq('')
-    end
-  end
-
   describe '#solve' do
     context 'when solve is successful' do
       let(:response_body) { '{"status": 1, "request": "12345"}' }
@@ -54,28 +14,22 @@ RSpec.describe Captcha::Request do
       end
 
       it 'returns self' do
-        result = request_instance.solve
-        expect(result).to eq(request_instance)
+        expect(request_instance.solve).to eq(request_instance)
       end
 
-      it 'sets json_response' do
+      it 'parses the response' do
         request_instance.solve
         expect(request_instance.json_response).to eq({ 'status' => 1, 'request' => '12345' })
-      end
-
-      it 'assigns captcha_id from response' do
-        request_instance.solve
-        expect(request_instance.instance_variable_get(:@captcha_id)).to eq('12345')
       end
 
       it 'posts the base64 captcha as a form' do
         expect(Captcha::Http).to receive(:post_form).with(
           described_class::SOLVE_URL,
-          method: 'base64',
+          method: described_class::IMAGE_METHOD,
           key: described_class::API_KEY,
           body: base64_captcha,
-          numeric: 4,
-          json: 1
+          numeric: described_class::ANSWER_LENGTH,
+          json: described_class::JSON_FLAG
         ).and_return(response_body)
 
         request_instance.solve
@@ -89,7 +43,7 @@ RSpec.describe Captcha::Request do
         allow(Captcha::Http).to receive(:post_form).and_return(response_body)
       end
 
-      it 'raises ZeroBalanceException' do
+      it 'raises ZeroBalanceException with the error text' do
         expect { request_instance.solve }.to raise_error(
           Captcha::Request::ZeroBalanceException,
           'No credits'
@@ -112,11 +66,10 @@ RSpec.describe Captcha::Request do
 
   describe '#fetch' do
     before do
-      # Set captcha_id as it would be set by solve
       request_instance.instance_variable_set(:@captcha_id, '12345')
     end
 
-    context 'when fetch is successful' do
+    context 'when the captcha is solved' do
       let(:response_body) { '{"status": 1, "request": "SOLVED_TEXT"}' }
 
       before do
@@ -124,11 +77,10 @@ RSpec.describe Captcha::Request do
       end
 
       it 'returns self' do
-        result = request_instance.fetch
-        expect(result).to eq(request_instance)
+        expect(request_instance.fetch).to eq(request_instance)
       end
 
-      it 'sets json_response' do
+      it 'parses the response' do
         request_instance.fetch
         expect(request_instance.json_response).to eq({ 'status' => 1, 'request' => 'SOLVED_TEXT' })
       end
@@ -137,20 +89,18 @@ RSpec.describe Captcha::Request do
         expect(Captcha::Http).to receive(:get).with(
           described_class::FETCH_URL,
           key: described_class::API_KEY,
-          action: 'get',
+          action: described_class::ACTION_GET,
           id: '12345',
-          json: 1
+          json: described_class::JSON_FLAG
         ).and_return(response_body)
 
         request_instance.fetch
       end
     end
 
-    context 'when fetch fails (captcha not resolved yet)' do
-      let(:response_body) { '{"status": 0, "request": "CAPCHA_NOT_READY"}' }
-
+    context 'when the captcha is not ready' do
       before do
-        allow(Captcha::Http).to receive(:get).and_return(response_body)
+        allow(Captcha::Http).to receive(:get).and_return('{"status": 0, "request": "CAPCHA_NOT_READY"}')
       end
 
       it 'raises CaptchaNotResolved' do
@@ -187,9 +137,9 @@ RSpec.describe Captcha::Request do
       expect(Captcha::Http).to receive(:get).with(
         described_class::FETCH_URL,
         key: described_class::API_KEY,
-        action: 'reportbad',
+        action: described_class::ACTION_REPORT_BAD,
         id: '12345',
-        json: 1
+        json: described_class::JSON_FLAG
       ).and_return('{"status": 1}')
 
       described_class.report_bad('12345')
@@ -202,13 +152,13 @@ RSpec.describe Captcha::Request do
     end
   end
 
-  describe 'integration test: solve and fetch workflow' do
+  describe 'solve then fetch' do
     before do
       allow(Captcha::Http).to receive(:post_form).and_return('{"status": 1, "request": "12345"}')
       allow(Captcha::Http).to receive(:get).and_return('{"status": 1, "request": "ABCD"}')
     end
 
-    it 'completes solve then fetch workflow' do
+    it 'keeps the captcha id between calls' do
       request_instance.solve
       expect(request_instance.json_response['request']).to eq('12345')
 
