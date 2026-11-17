@@ -47,7 +47,7 @@ class Runner
     Work.call(session: session, user: user)
     log_phase('done', 'outcome=applied')
   rescue StandardError => e
-    log_phase('done', "outcome=failed error=#{e.class}")
+    log_phase('done', "outcome=failed error=#{e.class} message=#{e.message.inspect}")
     raise
   end
 

@@ -64,7 +64,9 @@ RSpec.describe Runner do
         expect { runner.call }.to raise_error(Work::CannotApplyForJobError)
 
         expect(logged_lines).to include(
-          a_string_including('run phase=done', 'outcome=failed', 'error=Work::CannotApplyForJobError')
+          a_string_including(
+            'run phase=done', 'outcome=failed', 'error=Work::CannotApplyForJobError', %(message="no form")
+          )
         )
       end
     end
