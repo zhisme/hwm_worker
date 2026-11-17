@@ -1,5 +1,4 @@
 require 'helpers/captcha/resolver'
-require 'helpers/captcha/saver'
 require 'helpers/captcha/encoder'
 require 'helpers/captcha/downloader'
 
@@ -12,15 +11,10 @@ module Captcha
   module Main
     extend self
 
-    ##
-    # TODO: captcha.png getting messed between diff users, so we need to differentiate it
-    # pass user here and save it as captcha-#{username}.png
-    # and then fetch it without mess
     def call(image_url:)
-      Downloader.call(image_url: image_url)
-      encoder = Encoder.call
+      image_data = Downloader.call(image_url: image_url)
+      encoder = Encoder.call(image_data)
       resolved = Resolver.call(base64_captcha: encoder.base64_captcha)
-      Saver.call
 
       resolved
     end

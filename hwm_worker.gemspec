@@ -31,7 +31,6 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "selenium-webdriver", '~> 4.29', '>= 4.29.1'
   spec.add_dependency "capybara", '~> 3.40'
-  spec.add_dependency "rest-client"
   spec.add_dependency "rollbar"
 
   spec.add_development_dependency "rspec", "~> 3.13"

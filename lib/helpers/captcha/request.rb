@@ -1,4 +1,5 @@
-require 'rest-client'
+require 'json'
+require 'helpers/captcha/http'
 require 'config/secrets'
 
 module Captcha
@@ -15,6 +16,16 @@ module Captcha
     FETCH_URL = "#{RUCAPTCHA_URL}/res.php".freeze
     API_KEY = SECRETS['rucaptcha']['token']
 
+    # rucaptcha API parameters: `method=base64` sends the image inline,
+    # `numeric=4` asks for a 4-digit answer, `json=1` switches the response
+    # from plain text to JSON.
+    IMAGE_METHOD = 'base64'
+    ANSWER_LENGTH = 4
+    JSON_FLAG = 1
+
+    ACTION_GET = 'get'
+    ACTION_REPORT_BAD = 'reportbad'
+
     attr_reader :json_response
 
     class << self
@@ -22,10 +33,13 @@ module Captcha
     end
 
     def self.report_bad(captcha_id)
-      RestClient::Request.new(
-        method: :get,
-        url: "#{FETCH_URL}?key=#{API_KEY}&action=reportbad&id=#{captcha_id}&json=1"
-      ).execute
+      Http.get(
+        FETCH_URL,
+        key: API_KEY,
+        action: ACTION_REPORT_BAD,
+        id: captcha_id,
+        json: JSON_FLAG
+      )
     end
 
     def initialize(base64_captcha:)
@@ -34,7 +48,15 @@ module Captcha
     end
 
     def fetch
-      fetch_response(fetch_request)
+      fetch_response(
+        Http.get(
+          FETCH_URL,
+          key: API_KEY,
+          action: ACTION_GET,
+          id: captcha_id,
+          json: JSON_FLAG
+        )
+      )
 
       return self if success?
 
@@ -42,7 +64,16 @@ module Captcha
     end
 
     def solve
-      fetch_response(solve_request)
+      fetch_response(
+        Http.post_form(
+          SOLVE_URL,
+          method: IMAGE_METHOD,
+          key: API_KEY,
+          body: base64_captcha,
+          numeric: ANSWER_LENGTH,
+          json: JSON_FLAG
+        )
+      )
       assign_captcha_to_solve_id
 
       if success?
@@ -55,44 +86,18 @@ module Captcha
 
     private
 
-    attr_reader :action, :captcha_id, :base64_captcha
+    attr_reader :captcha_id, :base64_captcha
 
-    def solve?
-      action == :solve
-    end
-
-    def fetch_response(request)
-      response = request.execute
-      @json_response = JSON.parse response.body
+    def fetch_response(body)
+      @json_response = JSON.parse(body)
     end
 
     def success?
       @json_response['status'].to_s == '1'
     end
 
-    def solve_request
-      RestClient::Request.new(
-        method: :post,
-        url: SOLVE_URL,
-        payload: {
-          method: 'base64',
-          key: API_KEY,
-          body: base64_captcha,
-          numeric: 4,
-          json: 1,
-        }
-      )
-    end
-
     def assign_captcha_to_solve_id
       @captcha_id = json_response['request']
-    end
-
-    def fetch_request
-      RestClient::Request.new(
-        method: :get,
-        url: "#{FETCH_URL}?key=#{API_KEY}&action=get&id=#{captcha_id}&json=1"
-      )
     end
 
     def handle_failure!

@@ -1,4 +1,4 @@
-require 'open-uri'
+require 'helpers/captcha/http'
 
 ##
 # Download captcha by url
@@ -9,18 +9,12 @@ module Captcha
 
     class CaptchaEmpty < StandardError; end
 
+    # Returns the raw image bytes; the caller encodes and ships them to
+    # rucaptcha, nothing needs to touch the filesystem.
     def call(image_url:)
       raise CaptchaEmpty if image_url.nil?
 
-      download_captcha(image_url)
-    end
-
-    private
-
-    def download_captcha(image_url)
-      File.open('captcha.png', 'wb') do |fo|
-        fo.write URI.open(image_url).read
-      end
+      Http.get_binary(image_url)
     end
   end
 end
