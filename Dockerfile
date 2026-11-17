@@ -1,5 +1,5 @@
-# Use Ruby 3.4.1 slim as base image
-FROM ruby:3.4.8-slim
+# Use Ruby 3.4 slim as base image
+FROM ruby:3.4.12-slim
 
 # Install minimal system dependencies
 RUN apt-get update -qq && \
@@ -15,9 +15,8 @@ WORKDIR /app
 COPY Gemfile Gemfile.lock hwm_worker.gemspec ./
 COPY lib/hwm_worker/version.rb ./lib/hwm_worker/
 
-# Install bundler and gems
-RUN gem install bundler -v 2.6.3 && \
-    bundle install --jobs 4 --retry 3
+# Ruby 3.4.12 ships bundler 2.6.9 as a default gem
+RUN bundle install --jobs 4 --retry 3
 
 # Copy the rest of the application
 COPY . .
