@@ -1,5 +1,5 @@
-# Use Ruby 3.4.1 slim as base image
-FROM ruby:3.4.8-slim
+# Use Ruby 3.4 slim as base image
+FROM ruby:3.4.12-slim
 
 # Install minimal system dependencies
 RUN apt-get update -qq && \
