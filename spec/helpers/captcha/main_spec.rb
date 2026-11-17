@@ -9,11 +9,12 @@ RSpec.describe Captcha::Main do
   let(:image_url) { 'http://example.com/captcha.png' }
   let(:base64_captcha) { 'aGVsbG8gd29ybGQ=' }
   let(:solved_text) { 'ABCD' }
+  let(:image_data) { 'raw-png-bytes' }
   let(:mock_encoder) { instance_double(Captcha::Encoder, base64_captcha: base64_captcha) }
 
   describe '.call' do
     before do
-      allow(Captcha::Downloader).to receive(:call)
+      allow(Captcha::Downloader).to receive(:call).and_return(image_data)
       allow(Captcha::Encoder).to receive(:call).and_return(mock_encoder)
       allow(Captcha::Resolver).to receive(:call).and_return(solved_text)
       allow(Captcha::Saver).to receive(:call)
@@ -25,7 +26,7 @@ RSpec.describe Captcha::Main do
     end
 
     it 'encodes the downloaded image' do
-      expect(Captcha::Encoder).to receive(:call)
+      expect(Captcha::Encoder).to receive(:call).with(image_data)
       described_class.call(image_url: image_url)
     end
 
@@ -47,7 +48,10 @@ RSpec.describe Captcha::Main do
     it 'executes steps in correct order' do
       call_order = []
 
-      allow(Captcha::Downloader).to receive(:call) { call_order << :downloader }
+      allow(Captcha::Downloader).to receive(:call) do
+        call_order << :downloader
+        image_data
+      end
       allow(Captcha::Encoder).to receive(:call) do
         call_order << :encoder
         mock_encoder
@@ -72,7 +76,7 @@ RSpec.describe Captcha::Main do
 
   describe 'integration workflow' do
     before do
-      allow(Captcha::Downloader).to receive(:call)
+      allow(Captcha::Downloader).to receive(:call).and_return(image_data)
       allow(Captcha::Encoder).to receive(:call).and_return(mock_encoder)
       allow(Captcha::Resolver).to receive(:call).and_return(solved_text)
       allow(Captcha::Saver).to receive(:call)
@@ -104,7 +108,7 @@ RSpec.describe Captcha::Main do
   describe 'error propagation' do
     context 'when Downloader raises error' do
       before do
-        allow(Captcha::Downloader).to receive(:call).and_raise(Captcha::Downloader::CaptchaEmpty)
+        allow(Captcha::Downloader).to receive(:call).and_return(image_data).and_raise(Captcha::Downloader::CaptchaEmpty)
       end
 
       it 'propagates CaptchaEmpty error' do
@@ -114,7 +118,7 @@ RSpec.describe Captcha::Main do
 
     context 'when Resolver raises error' do
       before do
-        allow(Captcha::Downloader).to receive(:call)
+        allow(Captcha::Downloader).to receive(:call).and_return(image_data)
         allow(Captcha::Encoder).to receive(:call).and_return(mock_encoder)
         allow(Captcha::Resolver).to receive(:call).and_raise(Captcha::Request::CaptchaNotResolved)
       end
@@ -127,7 +131,7 @@ RSpec.describe Captcha::Main do
 
   describe 'parameter handling' do
     before do
-      allow(Captcha::Downloader).to receive(:call)
+      allow(Captcha::Downloader).to receive(:call).and_return(image_data)
       allow(Captcha::Encoder).to receive(:call).and_return(mock_encoder)
       allow(Captcha::Resolver).to receive(:call).and_return(solved_text)
       allow(Captcha::Saver).to receive(:call)

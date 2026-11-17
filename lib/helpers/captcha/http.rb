@@ -19,6 +19,9 @@ module Captcha
     READ_TIMEOUT = 20
     WRITE_TIMEOUT = 20
     RETRIES = 1
+    # Short pause before the single retry: a 5xx means the origin is unhealthy
+    # for at least a moment, so an immediate retry usually hits the same wall.
+    RETRY_PAUSE = 1
 
     TRANSPORT_ERRORS = [
       Timeout::Error,
@@ -51,8 +54,6 @@ module Captcha
 
     private
 
-    # shortcut: fixed 1s pause between the two attempts, tune if rucaptcha's
-    # 5xx windows turn out to be longer.
     def run(uri, request, binary: false, retries: RETRIES)
       response = Net::HTTP.start(
         uri.host,
@@ -70,12 +71,12 @@ module Captcha
 
       raise HttpError, http_error_message(response, uri) unless response.is_a?(Net::HTTPServerError) && retries.positive?
 
-      sleep 1
+      sleep RETRY_PAUSE
       run(uri, request, binary: binary, retries: retries - 1)
     rescue *TRANSPORT_ERRORS
       raise unless retries.positive?
 
-      sleep 1
+      sleep RETRY_PAUSE
       run(uri, request, binary: binary, retries: retries - 1)
     end
 

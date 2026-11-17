@@ -1,16 +1,9 @@
 require 'spec_helper'
 require 'helpers/captcha/downloader'
-require 'fileutils'
 
 RSpec.describe Captcha::Downloader do
   let(:image_url) { 'http://example.com/captcha.png' }
-  let(:test_captcha_path) { 'captcha.png' }
-  let(:fake_image_data) { "\x89PNG\r\n\x1A\n\x00\x00\x00\rIHDR" }
-
-  after do
-    # Clean up test file
-    FileUtils.rm_f(test_captcha_path) if File.exist?(test_captcha_path)
-  end
+  let(:fake_image_data) { "\x89PNG\r\n\x1A\n\x00\x00\x00\rIHDR".b }
 
   describe 'CaptchaEmpty exception' do
     it 'is defined' do
@@ -30,15 +23,9 @@ RSpec.describe Captcha::Downloader do
         allow(Captcha::Http).to receive(:get_binary).with(image_url).and_return(fake_image_data)
       end
 
-      it 'downloads the image' do
-        described_class.call(image_url: image_url)
-        expect(File.exist?(test_captcha_path)).to be true
-      end
-
-      it 'writes correct content to file' do
-        described_class.call(image_url: image_url)
-        content = File.binread(test_captcha_path)
-        expect(content).to eq(fake_image_data.force_encoding('ASCII-8BIT'))
+      it 'returns the image bytes without writing a file' do
+        expect(described_class.call(image_url: image_url)).to eq(fake_image_data)
+        expect(File.exist?('captcha.png')).to be false
       end
 
       it 'requests the image URL as binary' do
@@ -66,31 +53,11 @@ RSpec.describe Captcha::Downloader do
     end
   end
 
-  describe 'file writing behavior' do
-    before do
-      allow(Captcha::Http).to receive(:get_binary).with(image_url).and_return(fake_image_data)
-    end
-
-    it 'overwrites existing captcha.png if it exists' do
-      File.write(test_captcha_path, 'old data')
-
-      described_class.call(image_url: image_url)
-
-      expect(File.binread(test_captcha_path)).to eq(fake_image_data.force_encoding('ASCII-8BIT'))
-    end
-
-    it 'creates a readable and writable file' do
-      described_class.call(image_url: image_url)
-      expect(File.readable?(test_captcha_path)).to be true
-      expect(File.writable?(test_captcha_path)).to be true
-    end
-  end
-
   describe 'error handling' do
     context 'when the server returns an error status' do
       before do
         allow(Captcha::Http).to receive(:get_binary).with(image_url)
-                                             .and_raise(Captcha::Http::HttpError.new('HTTP 404 for example.com/captcha.png'))
+                                                     .and_raise(Captcha::Http::HttpError.new('HTTP 404 for example.com/captcha.png'))
       end
 
       it 'raises the http error' do
@@ -101,7 +68,7 @@ RSpec.describe Captcha::Downloader do
     context 'when network error occurs' do
       before do
         allow(Captcha::Http).to receive(:get_binary).with(image_url)
-                                             .and_raise(SocketError.new('getaddrinfo: Name or service not known'))
+                                                     .and_raise(SocketError.new('getaddrinfo: Name or service not known'))
       end
 
       it 'raises SocketError' do

@@ -16,6 +16,16 @@ module Captcha
     FETCH_URL = "#{RUCAPTCHA_URL}/res.php".freeze
     API_KEY = SECRETS['rucaptcha']['token']
 
+    # rucaptcha API parameters: `method=base64` sends the image inline,
+    # `numeric=4` asks for a 4-digit answer, `json=1` switches the response
+    # from plain text to JSON.
+    IMAGE_METHOD = 'base64'
+    ANSWER_LENGTH = 4
+    JSON_FLAG = 1
+
+    ACTION_GET = 'get'
+    ACTION_REPORT_BAD = 'reportbad'
+
     attr_reader :json_response
 
     class << self
@@ -26,9 +36,9 @@ module Captcha
       Http.get(
         FETCH_URL,
         key: API_KEY,
-        action: 'reportbad',
+        action: ACTION_REPORT_BAD,
         id: captcha_id,
-        json: 1
+        json: JSON_FLAG
       )
     end
 
@@ -42,9 +52,9 @@ module Captcha
         Http.get(
           FETCH_URL,
           key: API_KEY,
-          action: 'get',
+          action: ACTION_GET,
           id: captcha_id,
-          json: 1
+          json: JSON_FLAG
         )
       )
 
@@ -57,11 +67,11 @@ module Captcha
       fetch_response(
         Http.post_form(
           SOLVE_URL,
-          method: 'base64',
+          method: IMAGE_METHOD,
           key: API_KEY,
           body: base64_captcha,
-          numeric: 4,
-          json: 1
+          numeric: ANSWER_LENGTH,
+          json: JSON_FLAG
         )
       )
       assign_captcha_to_solve_id
