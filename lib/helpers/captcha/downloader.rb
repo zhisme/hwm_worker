@@ -1,4 +1,4 @@
-require 'open-uri'
+require 'helpers/captcha/http'
 
 ##
 # Download captcha by url
@@ -18,9 +18,7 @@ module Captcha
     private
 
     def download_captcha(image_url)
-      File.open('captcha.png', 'wb') do |fo|
-        fo.write URI.open(image_url).read
-      end
+      File.binwrite('captcha.png', Http.get_binary(image_url))
     end
   end
 end
