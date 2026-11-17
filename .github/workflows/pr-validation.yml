@@ -7,6 +7,24 @@ on:
       - main
 
 jobs:
+  ruby-version-check:
+    name: Ruby Version Consistency
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Dockerfile base image matches .ruby-version
+        run: |
+          expected="$(tr -d '[:space:]' < .ruby-version)"
+          actual="$(sed -nE 's/^FROM ruby:([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' Dockerfile | head -1)"
+          echo ".ruby-version=$expected Dockerfile=$actual"
+          if [ "$expected" != "$actual" ]; then
+            echo "::error::Dockerfile builds on Ruby $actual but .ruby-version says $expected"
+            exit 1
+          fi
+
   build-image:
     name: Build and Verify Docker Image
     runs-on: ubuntu-latest
@@ -86,7 +104,8 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.4.12'
+          # Version comes from .ruby-version; the ruby-version-check job fails
+          # the PR if Dockerfile's base image disagrees with it.
           bundler-cache: true
 
       - name: Install bundler-audit

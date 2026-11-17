@@ -1,4 +1,5 @@
-# Use Ruby 3.4 slim as base image
+# Use Ruby 3.4 slim as base image. Patch version must match .ruby-version;
+# the Ruby Version Consistency job fails the PR otherwise.
 FROM ruby:3.4.12-slim
 
 # Install minimal system dependencies
