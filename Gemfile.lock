@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    hwm_worker (1.5.0)
+    hwm_worker (1.5.1)
       capybara (~> 3.40)
       rollbar
       selenium-webdriver (~> 4.29, >= 4.29.1)
