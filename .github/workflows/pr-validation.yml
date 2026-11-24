@@ -91,7 +91,7 @@ jobs:
         run: docker compose config
 
       - name: Test docker-compose build
-        run: docker compose build worker hunter
+        run: docker compose build worker
 
   security-audit:
     name: Security Audit
