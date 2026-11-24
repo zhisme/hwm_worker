@@ -152,6 +152,26 @@ RSpec.describe Captcha::Request do
     end
   end
 
+  describe '.report_good' do
+    it 'sends reportgood for the given id' do
+      expect(Captcha::Http).to receive(:get).with(
+        described_class::FETCH_URL,
+        key: described_class::API_KEY,
+        action: described_class::ACTION_REPORT_GOOD,
+        id: '12345',
+        json: described_class::JSON_FLAG
+      ).and_return('{"status": 1}')
+
+      described_class.report_good('12345')
+    end
+
+    it 'propagates transport errors to the caller' do
+      allow(Captcha::Http).to receive(:get).and_raise(Captcha::Http::HttpError)
+
+      expect { described_class.report_good('12345') }.to raise_error(Captcha::Http::HttpError)
+    end
+  end
+
   describe 'solve then fetch' do
     before do
       allow(Captcha::Http).to receive(:post_form).and_return('{"status": 1, "request": "12345"}')

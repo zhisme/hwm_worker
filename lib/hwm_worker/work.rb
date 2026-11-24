@@ -136,6 +136,7 @@ module Work
     session.find('.getjob_submitBtn').click
 
     assert_employed(session, user)
+    report_good_captcha
     WorkLogger.current.info { "#{user.login} successfully applied for a job. Wait hour." }
     log_gold(session, user)
     log_interval(user)
@@ -149,11 +150,19 @@ module Work
   end
 
   def report_bad_captcha
+    report_captcha(:report_bad)
+  end
+
+  def report_good_captcha
+    report_captcha(:report_good)
+  end
+
+  def report_captcha(action)
     captcha_id = Captcha::Request.last_captcha_id
-    Captcha::Request.report_bad(captcha_id)
-    WorkLogger.current.info { "captcha report_bad sent id=#{captcha_id}" }
+    Captcha::Request.public_send(action, captcha_id)
+    WorkLogger.current.info { "captcha #{action} sent id=#{captcha_id}" }
   rescue StandardError => e
-    WorkLogger.current.info { "captcha report_bad failed id=#{captcha_id} error=#{e.class}" }
+    WorkLogger.current.info { "captcha #{action} failed id=#{captcha_id} error=#{e.class}" }
   end
 
   ##

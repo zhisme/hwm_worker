@@ -25,21 +25,32 @@ module Captcha
 
     ACTION_GET = 'get'
     ACTION_REPORT_BAD = 'reportbad'
+    ACTION_REPORT_GOOD = 'reportgood'
 
     attr_reader :json_response
 
     class << self
       attr_accessor :last_captcha_id
-    end
 
-    def self.report_bad(captcha_id)
-      Http.get(
-        FETCH_URL,
-        key: API_KEY,
-        action: ACTION_REPORT_BAD,
-        id: captcha_id,
-        json: JSON_FLAG
-      )
+      def report_bad(captcha_id)
+        report(ACTION_REPORT_BAD, captcha_id)
+      end
+
+      def report_good(captcha_id)
+        report(ACTION_REPORT_GOOD, captcha_id)
+      end
+
+      private
+
+      def report(action, captcha_id)
+        Http.get(
+          FETCH_URL,
+          key: API_KEY,
+          action: action,
+          id: captcha_id,
+          json: JSON_FLAG
+        )
+      end
     end
 
     def initialize(base64_captcha:)
