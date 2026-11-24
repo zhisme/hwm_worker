@@ -28,6 +28,7 @@ RSpec.describe Work do
       allow(described_class).to receive(:find_work) { session.visit('/') }
       allow(described_class).to receive(:apply_work) { events << :apply }
       allow(Rollbar).to receive(:warning) { |message| events << message }
+      allow(InventoryCheck).to receive(:call) { events << :inventory_check }
       allow(Hunt).to receive(:call) { events << :hunt }
       allow(FileBase).to receive(:register_hunt).and_return(1)
     end
@@ -45,7 +46,8 @@ RSpec.describe Work do
       it 'warns with the parsed coefficient before applying' do
         described_class.call(session: session, user: user)
 
-        expect(events).to eq(['test_login has the workaholic penalty, wage is x0.1 until a battle is won', :apply, :hunt])
+        expect(events).to eq(['test_login has the workaholic penalty, wage is x0.1 until a battle is won', :apply,
+                              :inventory_check, :hunt])
         expect(logged_lines).to include('test_login has the workaholic penalty, wage is x0.1 until a battle is won')
       end
     end
@@ -57,6 +59,23 @@ RSpec.describe Work do
         described_class.call(session: session, user: user)
 
         expect(Hunt).to have_received(:call).with(session: session, user: user)
+      end
+    end
+
+    context 'when the mirror is too worn' do
+      let(:page_html) { wage_cell('<font color="#E65054"><b>*0.7 (штраф трудоголика)</b></font>') }
+
+      before do
+        allow(InventoryCheck).to receive(:call)
+          .and_raise(InventoryCheck::MirrorLowDurability, 'Mirror durability is 1/40 for test_login. Sell it now!')
+      end
+
+      it 'keeps the paid application and skips the hunt' do
+        expect { described_class.call(session: session, user: user) }.not_to raise_error
+
+        expect(events).to include(:apply)
+        expect(Hunt).not_to have_received(:call)
+        expect(events.grep(String).last).to include('hunt after workaholic penalty failed user=test_login')
       end
     end
 

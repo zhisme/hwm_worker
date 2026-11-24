@@ -23,19 +23,17 @@ selenium:
 ## Quick Start
 
 ```bash
-# Start Selenium and both worker services
+# Start Selenium and the worker
 docker-compose up
 
 # Run in background
 docker-compose up -d
 
 # Start only specific services
-docker-compose up selenium worker    # Only bin/run
-docker-compose up selenium hunter    # Only bin/hunt
+docker-compose up selenium worker
 
 # View logs
 docker-compose logs -f worker
-docker-compose logs -f hunter
 docker-compose logs -f selenium
 
 # Stop services
@@ -44,27 +42,19 @@ docker-compose down
 
 ## Services
 
-The docker-compose.yml defines three services:
+The docker-compose.yml defines two services:
 
-- **selenium**: Chrome browser container (shared by both workers)
-- **worker**: Runs `bin/run` (main worker)
-- **hunter**: Runs `bin/hunt` (auto-hunt)
+- **selenium**: Chrome browser container
+- **worker**: Runs `bin/run` (applies for a job, and hunts in the same session when the workaholic penalty shows up)
 
 ## Running Different Commands
 
 ```bash
-# Run worker only (bin/run)
+# Run worker (bin/run)
 docker-compose up worker
-
-# Run hunter only (bin/hunt)
-docker-compose up hunter
-
-# Run both workers simultaneously
-docker-compose up worker hunter
 
 # Run one-off commands
 docker-compose run --rm worker bin/console
-docker-compose run --rm hunter bin/console
 
 # Run with production environment
 docker-compose run --rm -e APP_ENV=production worker
@@ -80,11 +70,8 @@ For cron scheduling, you can use docker-compose to run one-off executions:
 # Run worker every hour
 0 * * * * cd /path/to/hwm_worker && docker-compose run --rm worker
 
-# Run hunter every 30 minutes
-*/30 * * * * cd /path/to/hwm_worker && docker-compose run --rm hunter
-
-# Or keep services running with restart policies (already configured)
-# docker-compose up -d worker hunter
+# Or keep the service running with a restart policy (already configured)
+# docker-compose up -d worker
 ```
 
 ## Configuration

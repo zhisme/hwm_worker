@@ -3,6 +3,7 @@ require 'helpers/captcha/main'
 require 'helpers/deadline'
 require 'helpers/file_base'
 require 'hwm_worker/hunt'
+require 'hwm_worker/inventory_check'
 
 ##
 # Find available work
@@ -14,10 +15,10 @@ module Work
   MAX_APPLY_ATTEMPTS = 2
 
   # A penalty-free streak lasts 9 applications, so the hour the server starts
-  # cutting the wage is the hour to win a battle. The two fixed hunter runs
-  # cover the night and midday; these two extra are spent only when the wage
-  # line already shows the penalty, so a bad streak cannot drain the mirror.
-  MAX_HUNTS_PER_DAY = 2
+  # cutting the wage is the hour to win a battle. Only the worker hunts, and
+  # only when the wage line already shows the penalty, so this is the only
+  # bound on mirror wear.
+  MAX_HUNTS_PER_DAY = 4
 
   # Login + captcha already eat most of the run on slow days; a hunt is one
   # map visit and a battle report, so it only starts with this much left.
@@ -96,6 +97,7 @@ module Work
     WorkLogger.current.info do
       "hunt started user=#{user.login} reason=workaholic_penalty attempt=#{attempt} budget_left=#{Deadline.left_for_log}"
     end
+    InventoryCheck.call(session: session, user: user)
     Hunt.call(session: session, user: user)
   rescue StandardError => e
     message = "hunt after workaholic penalty failed user=#{user.login} error=#{e.class} message=#{e.message}"

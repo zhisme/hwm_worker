@@ -31,7 +31,6 @@ body:
       description: Which command was running?
       options:
         - bin/run (work)
-        - bin/hunt (auto-hunt)
         - bin/setup
         - bin/console
         - rake spec
