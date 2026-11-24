@@ -1,8 +1,0 @@
-#!/usr/bin/env ruby
-
-require "bundler/setup"
-require "hwm_worker"
-
-trap('TERM') { raise HwmWorker::WorkerTerminated, "Hunter terminated by SIGTERM" }
-
-HwmWorker.hunt

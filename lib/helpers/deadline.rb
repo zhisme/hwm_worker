@@ -62,7 +62,7 @@ module Deadline
   end
 
   ##
-  # Test seam, also lets bin/hunt and bin/run share the module safely.
+  # Test seam, also lets a hunt inside a worker run share the module safely.
   #
   def reset!
     @started_at = nil

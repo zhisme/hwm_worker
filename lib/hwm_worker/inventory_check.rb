@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'config/urls'
+require 'helpers/work_logger'
 
 ##
 # Check mirror durability before hunt
@@ -24,7 +25,9 @@ module InventoryCheck
     durability_el = session.find(MIRROR_SLOT_SELECTOR, visible: :all)
     durability_text = durability_el.text(:all)
 
-    current, _max = durability_text.split('/').map(&:to_i)
+    current, max = durability_text.split('/').map(&:to_i)
+
+    WorkLogger.current.info { "mirror durability user=#{user.login} #{current}/#{max}" }
 
     return if current > 1
 

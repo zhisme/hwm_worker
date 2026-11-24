@@ -31,7 +31,6 @@ body:
       description: Which command was running?
       options:
         - bin/run (work)
-        - bin/hunt (auto-hunt)
         - bin/setup
         - bin/console
         - rake spec
@@ -44,7 +43,7 @@ body:
     attributes:
       label: How do you run it
       options:
-        - docker-compose (worker/hunter services)
+        - docker-compose (worker service)
         - plain docker run
         - kubernetes
         - local ruby, no docker

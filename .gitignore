@@ -14,6 +14,8 @@
 .rspec_status
 # credentials
 .hwm_credentials.yml
+# local handoff notes, not part of the gem
+docs/workaholic-penalty.md
 # captcha
 captcha.png
 .byebug_history

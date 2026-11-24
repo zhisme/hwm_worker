@@ -75,49 +75,4 @@ RSpec.describe HwmWorker do
       end
     end
   end
-
-  describe '.hunt' do
-    before do
-      allow(AutoHunt).to receive(:call)
-    end
-
-    context 'when ZeroBalanceException is raised' do
-      let(:error) { Captcha::Request::ZeroBalanceException.new('No credits') }
-
-      before do
-        allow(AutoHunt).to receive(:call).and_raise(error)
-        allow(Rollbar).to receive(:error)
-      end
-
-      it 'reports to Rollbar' do
-        expect { described_class.hunt }.to raise_error(SystemExit)
-        expect(Rollbar).to have_received(:error).with(error)
-      end
-
-      it 'exits with status code 1' do
-        expect { described_class.hunt }.to raise_error(SystemExit) do |exit_error|
-          expect(exit_error.status).to eq(1)
-        end
-      end
-    end
-
-    context 'when other StandardError is raised' do
-      let(:error) { StandardError.new('Some other error') }
-
-      before do
-        allow(AutoHunt).to receive(:call).and_raise(error)
-        allow(Rollbar).to receive(:error)
-        allow(ENV).to receive(:[]).with('APP_ENV').and_return('production')
-      end
-
-      it 'reports to Rollbar' do
-        described_class.hunt
-        expect(Rollbar).to have_received(:error).with(error)
-      end
-
-      it 'does not exit' do
-        expect { described_class.hunt }.not_to raise_error
-      end
-    end
-  end
 end

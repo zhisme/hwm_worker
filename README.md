@@ -4,7 +4,7 @@ This gem is intended to use on https://heroeswm.ru flash game. <br>
 This is made for automation of boring captcha in game scenario.
 So you pass your credentials in specific file, buy a captcha resolver at rucaptacha.com and watch you are going rich.
 
-Also it can now make auto-hunt, you just need to buy an item which allows you to do this, and bot will press this buttons
+It also auto-hunts when the workaholic penalty shows up, you just need an item that allows auto-battle
 
 ## Warning
 
@@ -23,8 +23,6 @@ $ cp secrets.sample.yml secrets.yml
 # Then start the services:
 
 $ docker-compose up worker  # Run bin/run
-$ docker-compose up hunter  # Run bin/hunt
-$ docker-compose up         # Run both
 ```
 
 **For detailed Docker instructions, see [DOCKER_README.md](DOCKER_README.md)**
@@ -60,7 +58,6 @@ Fill in with your own game credentials.
 ### Usage (Local)
 
     $ APP_ENV=development bin/run
-    $ APP_ENV=development bin/hunt
 
 ## Options
 

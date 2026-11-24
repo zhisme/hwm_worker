@@ -28,19 +28,3 @@ services:
       - ./logs:/app/logs
     command: ["bin/run"]
     restart: unless-stopped
-
-  # Hunter service - runs bin/hunt
-  hunter:
-    build: .
-    image: hwm_worker:latest
-    depends_on:
-      - selenium
-    environment:
-      - APP_ENV=development
-      - SELENIUM_URL=http://selenium:4444
-    volumes:
-      - ./.hwm_credentials.yml:/app/.hwm_credentials.yml
-      - ./secrets.yml:/app/secrets.yml
-      - ./logs:/app/logs
-    command: ["bin/hunt"]
-    restart: unless-stopped
