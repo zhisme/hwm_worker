@@ -165,6 +165,7 @@ RSpec.describe Work do
       allow(session).to receive(:find).with('input.getjob_submitBtn').and_return(submit_button)
       allow(session).to receive(:find).with('img[hwm_label="Золото"] + span').and_return(gold_element)
       allow(gold_element).to receive(:text).with(:all).and_return('61,372')
+      allow(Captcha::Request).to receive(:report_good)
     end
 
     # Capybara does the matching for real here: the double returns whether the
@@ -274,12 +275,31 @@ RSpec.describe Work do
         expect(logged_lines).to include('captcha report_bad failed id=777 error=SocketError')
       end
 
-      it 'does not report the captcha when the job was taken' do
+      it 'does not report the captcha as wrongly solved when the job was taken' do
         stub_page_text('You are already employed.')
 
         described_class.send(:apply_work_with_captcha, session, user, captcha_el)
 
         expect(Captcha::Request).not_to have_received(:report_bad)
+      end
+
+      it 'reports the captcha as correctly solved when the job was taken' do
+        stub_page_text('Вы уже устроены.')
+
+        described_class.send(:apply_work_with_captcha, session, user, captcha_el)
+
+        expect(Captcha::Request).to have_received(:report_good).with('777')
+        expect(logged_lines).to include('captcha report_good sent id=777')
+      end
+
+      it 'keeps the original result when the reportgood itself fails' do
+        stub_page_text('You are already employed.')
+        allow(Captcha::Request).to receive(:report_good).and_raise(SocketError, 'getaddrinfo failed')
+
+        described_class.send(:apply_work_with_captcha, session, user, captcha_el)
+
+        expect(FileBase).to have_received(:write_last_work).with('test_user')
+        expect(logged_lines).to include('captcha report_good failed id=777 error=SocketError')
       end
 
       it 'does not report the captcha when the submit was too early' do
@@ -289,6 +309,7 @@ RSpec.describe Work do
           .to raise_error(Work::AppliedTooEarlyError)
 
         expect(Captcha::Request).not_to have_received(:report_bad)
+        expect(Captcha::Request).not_to have_received(:report_good)
       end
     end
 
@@ -300,6 +321,14 @@ RSpec.describe Work do
         .to raise_error(Work::NotAppliedForJobError)
 
       expect(Captcha::Request).not_to have_received(:report_bad)
+    end
+
+    it 'does not report a captcha as solved on a manual apply' do
+      stub_page_text('You are already employed.')
+
+      described_class.send(:apply_work_without_captcha, session, user)
+
+      expect(Captcha::Request).not_to have_received(:report_good)
     end
   end
 
