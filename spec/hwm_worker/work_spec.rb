@@ -28,6 +28,8 @@ RSpec.describe Work do
       allow(described_class).to receive(:find_work) { session.visit('/') }
       allow(described_class).to receive(:apply_work) { events << :apply }
       allow(Rollbar).to receive(:warning) { |message| events << message }
+      allow(Hunt).to receive(:call) { events << :hunt }
+      allow(FileBase).to receive(:register_hunt).and_return(1)
     end
 
     # The wage cell of the facility page, where the penalty multiplier appears
@@ -43,8 +45,59 @@ RSpec.describe Work do
       it 'warns with the parsed coefficient before applying' do
         described_class.call(session: session, user: user)
 
-        expect(events).to eq(['test_login has the workaholic penalty, wage is x0.1 until a battle is won', :apply])
+        expect(events).to eq(['test_login has the workaholic penalty, wage is x0.1 until a battle is won', :apply, :hunt])
         expect(logged_lines).to include('test_login has the workaholic penalty, wage is x0.1 until a battle is won')
+      end
+    end
+
+    context 'when the penalty is at the floor' do
+      let(:page_html) { wage_cell('<font color="#E65054"><b>*0.1 (штраф трудоголика)</b></font>') }
+
+      it 'still hunts to clear it' do
+        described_class.call(session: session, user: user)
+
+        expect(Hunt).to have_received(:call).with(session: session, user: user)
+      end
+    end
+
+    context 'when the daily hunt cap is used up' do
+      let(:page_html) { wage_cell('<font color="#E65054"><b>*0.7 (штраф трудоголика)</b></font>') }
+
+      before { allow(FileBase).to receive(:register_hunt).and_return(described_class::MAX_HUNTS_PER_DAY + 1) }
+
+      it 'applies without hunting' do
+        described_class.call(session: session, user: user)
+
+        expect(Hunt).not_to have_received(:call)
+        expect(logged_lines).to include("hunt skipped user=test_login reason=daily_cap hunts=#{described_class::MAX_HUNTS_PER_DAY}")
+      end
+    end
+
+    context 'when the run budget is too short for a hunt' do
+      let(:page_html) { wage_cell('<font color="#E65054"><b>*0.7 (штраф трудоголика)</b></font>') }
+
+      before { allow(Deadline).to receive(:left).and_return(described_class::HUNT_BUDGET - 1) }
+
+      it 'applies without hunting' do
+        described_class.call(session: session, user: user)
+
+        expect(Hunt).not_to have_received(:call)
+        expect(logged_lines).to include('hunt skipped user=test_login reason=budget')
+      end
+    end
+
+    context 'when the hunt itself fails' do
+      let(:page_html) { wage_cell('<font color="#E65054"><b>*0.7 (штраф трудоголика)</b></font>') }
+
+      before do
+        allow(Hunt).to receive(:call).and_raise(Hunt::AutoHuntBroken, 'autobattle button hint is nil')
+      end
+
+      it 'keeps the paid application and reports the failure' do
+        expect { described_class.call(session: session, user: user) }.not_to raise_error
+
+        expect(events).to include(:apply)
+        expect(events.grep(String).last).to include('hunt after workaholic penalty failed user=test_login')
       end
     end
 
@@ -65,6 +118,7 @@ RSpec.describe Work do
         described_class.call(session: session, user: user)
 
         expect(events).to eq([:apply])
+        expect(Hunt).not_to have_received(:call)
       end
     end
 

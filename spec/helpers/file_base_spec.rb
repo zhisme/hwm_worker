@@ -72,6 +72,26 @@ RSpec.describe FileBase do
     end
   end
 
+  describe '.register_hunt' do
+    let(:hunt_path) { test_path.join("hunts-#{user_id}.db") }
+
+    after do
+      FileUtils.rm_f(hunt_path) if File.exist?(hunt_path)
+    end
+
+    it 'counts hunts within the same day' do
+      expect(described_class.register_hunt(user_id)).to eq(1)
+      expect(described_class.register_hunt(user_id)).to eq(2)
+    end
+
+    it 'restarts the count on a new day' do
+      File.write(hunt_path, "2026-01-01 3\n")
+
+      expect(described_class.register_hunt(user_id)).to eq(1)
+      expect(described_class.register_hunt(user_id)).to eq(2)
+    end
+  end
+
   describe 'integration test' do
     it 'write and read workflow works correctly' do
       # Initially no file exists

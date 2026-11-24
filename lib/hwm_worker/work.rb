@@ -2,6 +2,7 @@ require 'config/urls'
 require 'helpers/captcha/main'
 require 'helpers/deadline'
 require 'helpers/file_base'
+require 'hwm_worker/hunt'
 
 ##
 # Find available work
@@ -11,6 +12,16 @@ module Work
 
   HOUR = 60 * 60
   MAX_APPLY_ATTEMPTS = 2
+
+  # A penalty-free streak lasts 9 applications, so the hour the server starts
+  # cutting the wage is the hour to win a battle. The two fixed hunter runs
+  # cover the night and midday; these two extra are spent only when the wage
+  # line already shows the penalty, so a bad streak cannot drain the mirror.
+  MAX_HUNTS_PER_DAY = 2
+
+  # Login + captcha already eat most of the run on slow days; a hunt is one
+  # map visit and a battle report, so it only starts with this much left.
+  HUNT_BUDGET = 120
 
   class NoAvailableWork < StandardError; end
   class CannotApplyForJobError < StandardError; end
@@ -39,8 +50,9 @@ module Work
     attempt = 1
     begin
       find_work(session)
-      warn_workaholic(session, user)
+      penalty = warn_workaholic(session, user)
       apply_work(session, user)
+      hunt_for_penalty(session, user) if penalty
     rescue NotAppliedForJobError
       raise if attempt >= MAX_APPLY_ATTEMPTS || Deadline.exceeded?
 
@@ -56,12 +68,39 @@ module Work
 
   def warn_workaholic(session, user)
     penalty = session.find('b', text: WORKAHOLIC_MARKER)
-    coefficient = penalty.text[/\*([\d.]+)/, 1]
+    coefficient = penalty.text[/\*([\d.]+)/, 1] || 'unknown'
     message = "#{user.login} has the workaholic penalty, wage is x#{coefficient} until a battle is won"
     WorkLogger.current.warn { message }
     Rollbar.warning(message)
+    coefficient
   rescue Capybara::ElementNotFound
     nil
+  end
+
+  ##
+  # Runs after the job is taken and its cooldown is written, so a hunt failure
+  # can never cost the paid application.
+  #
+  def hunt_for_penalty(session, user)
+    if Deadline.left < HUNT_BUDGET
+      WorkLogger.current.info { "hunt skipped user=#{user.login} reason=budget" }
+      return
+    end
+
+    attempt = FileBase.register_hunt(user.id)
+    if attempt > MAX_HUNTS_PER_DAY
+      WorkLogger.current.info { "hunt skipped user=#{user.login} reason=daily_cap hunts=#{attempt - 1}" }
+      return
+    end
+
+    WorkLogger.current.info do
+      "hunt started user=#{user.login} reason=workaholic_penalty attempt=#{attempt} budget_left=#{Deadline.left_for_log}"
+    end
+    Hunt.call(session: session, user: user)
+  rescue StandardError => e
+    message = "hunt after workaholic penalty failed user=#{user.login} error=#{e.class} message=#{e.message}"
+    WorkLogger.current.warn { message }
+    Rollbar.warning(message)
   end
 
   def apply_work(session, user)
